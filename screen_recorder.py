@@ -8,11 +8,13 @@ import pyautogui
 import os
 from datetime import datetime
 try:
-    from config import RECORD_FPS, TEMP_DIR
+    from config import RECORD_FPS, TEMP_DIR, MAX_VIDEO_WIDTH, MAX_VIDEO_HEIGHT
 except ImportError:
     # Fallback nếu không có config
     RECORD_FPS = 10
     TEMP_DIR = "temp"
+    MAX_VIDEO_WIDTH = 1280
+    MAX_VIDEO_HEIGHT = 720
 
 
 def record_screen(duration=10, fps=None):
