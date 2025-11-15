@@ -130,6 +130,8 @@ echo [ERROR] Khong the tai file .exe tu bat ky nguon nao!
 goto :download_fail
 
 :download_success
+REM Tiếp tục xử lý file đã tải thành công
+goto :process_file
 
 :download_fail
 if not exist "%EXE_FILENAME%.tmp" (
@@ -149,6 +151,8 @@ if not exist "%EXE_FILENAME%.tmp" (
     pause
     exit /b 1
 )
+
+:process_file
 
 REM Kiểm tra kích thước file (ít nhất 1MB)
 for %%f in ("%EXE_FILENAME%.tmp") do (
