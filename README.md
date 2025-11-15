@@ -4,7 +4,9 @@
 
 ## 🚀 Cài đặt nhanh
 
-### Phương pháp 1: Sử dụng file .EXE (KHUYẾN NGHỊ - Không cần Python)
+### ⭐ Phương pháp 1: Sử dụng file .EXE (KHUYẾN NGHỊ - Không cần Python!)
+
+**⚠️ QUAN TRỌNG:** File `.exe` đã chứa TẤT CẢ thư viện bên trong, máy đích **KHÔNG CẦN** Python hay bất kỳ thư viện nào!
 
 1. **Tải file `INSTALL_EXE.bat`** từ GitHub:
    - Vào: https://github.com/truongxoantit/TLe1
@@ -15,11 +17,13 @@
 2. **Chạy file `INSTALL_EXE.bat`** (Click đúp hoặc chuột phải → Run as Administrator)
 
 **XONG!** Ứng dụng sẽ tự động:
-- ✅ Tải file .exe từ GitHub
+- ✅ Tải file .exe từ GitHub (đã chứa tất cả thư viện)
+- ✅ Chạy ngay lập tức (KHÔNG cần cài Python hay thư viện!)
 - ✅ Ẩn thư mục và file
 - ✅ Thêm vào Windows Startup
-- ✅ Khởi động ứng dụng ngay
 - ✅ Chạy hoàn toàn ẩn với vòng lặp vô hạn
+
+**Lưu ý:** File .exe cần được build trước (xem [HUONG_DAN_BUILD_EXE.md](HUONG_DAN_BUILD_EXE.md))
 
 ### Phương pháp 2: Sử dụng Python (Cần Python trên máy đích)
 
@@ -79,10 +83,28 @@ main/
 
 ## ⚠️ Lưu ý
 
-- Cần Python trên máy đích
+### Phương pháp 1 (File .EXE):
+- ✅ **KHÔNG CẦN** Python trên máy đích
+- ✅ **KHÔNG CẦN** cài thư viện gì cả
+- ✅ Chỉ cần file .exe (đã chứa tất cả)
+
+### Phương pháp 2 (Python):
+- ⚠️ Cần Python trên máy đích
+- ⚠️ Cần cài thư viện (tự động qua INSTALL.bat)
+
+### Chung:
 - Ứng dụng tự động chạy khi khởi động Windows
 - Chạy hoàn toàn ẩn, không có cửa sổ
 - Repo GitHub: **TLe1** (Private)
+
+## 📦 Build file .EXE
+
+Xem hướng dẫn chi tiết: [HUONG_DAN_BUILD_EXE.md](HUONG_DAN_BUILD_EXE.md)
+
+**Tóm tắt:**
+- Build trên máy phát triển (cần Python): `BUILD_EXE.bat`
+- Upload file .exe lên GitHub
+- Máy đích chỉ cần chạy `INSTALL_EXE.bat` (KHÔNG cần Python!)
 
 ## 🔧 Kiểm tra và Debug
 
