@@ -78,49 +78,110 @@ if exist "%EXE_FILENAME%" (
 REM Tải file mới - thử nhiều cách
 echo Dang tai %EXE_FILENAME%...
 
-REM Cách 1: Tải từ raw.githubusercontent.com (nếu file đã được commit)
-echo [1/3] Thu tai tu raw.githubusercontent.com...
-curl -L -H "Authorization: token %GITHUB_TOKEN%" ^
-    -o "%EXE_FILENAME%.tmp" ^
-    "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/dist/%EXE_FILENAME%" 2>"%INSTALL_DIR%\curl_error.log"
+REM Kiểm tra token trước
+echo [CHECK] Dang kiem tra GitHub token...
+curl -s -H "Authorization: token %GITHUB_TOKEN%" https://api.github.com/user >"%INSTALL_DIR%\token_check.tmp" 2>nul
+findstr /C:"Bad credentials" "%INSTALL_DIR%\token_check.tmp" >nul 2>&1
+if not errorlevel 1 (
+    echo [WARNING] GitHub token khong hop le hoac het han!
+    echo [INFO] Thu tai khong can token (neu repo la public)...
+    del /f /q "%INSTALL_DIR%\token_check.tmp" >nul 2>&1
+    set USE_TOKEN=0
+) else (
+    echo [OK] GitHub token hop le
+    del /f /q "%INSTALL_DIR%\token_check.tmp" >nul 2>&1
+    set USE_TOKEN=1
+)
+echo.
+
+REM Cách 1: Tải từ raw.githubusercontent.com (không cần token nếu public)
+echo [1/4] Thu tai tu raw.githubusercontent.com...
+if "%USE_TOKEN%"=="1" (
+    curl -L -H "Authorization: token %GITHUB_TOKEN%" -o "%EXE_FILENAME%.tmp" "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/dist/%EXE_FILENAME%" 2>"%INSTALL_DIR%\curl_error.log"
+) else (
+    curl -L -o "%EXE_FILENAME%.tmp" "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/dist/%EXE_FILENAME%" 2>"%INSTALL_DIR%\curl_error.log"
+)
 
 REM Kiểm tra xem file có hợp lệ không
 if exist "%EXE_FILENAME%.tmp" (
     for %%f in ("%EXE_FILENAME%.tmp") do (
         if %%~zf GTR 1048576 (
-            echo [OK] Da tai thanh cong tu raw.githubusercontent.com
-            goto :download_success
+            REM Kiểm tra xem có phải file lỗi không (404, Bad credentials, etc.)
+            findstr /C:"404" "%EXE_FILENAME%.tmp" >nul 2>&1
+            if errorlevel 1 (
+                findstr /C:"Bad credentials" "%EXE_FILENAME%.tmp" >nul 2>&1
+                if errorlevel 1 (
+                    echo [OK] Da tai thanh cong tu raw.githubusercontent.com
+                    goto :download_success
+                )
+            )
         )
     )
 )
 
 REM Cách 2: Tải từ thư mục root (nếu file ở root)
-echo [2/3] Thu tai tu thu muc root...
-curl -L -H "Authorization: token %GITHUB_TOKEN%" ^
-    -o "%EXE_FILENAME%.tmp" ^
-    "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/%EXE_FILENAME%" 2>"%INSTALL_DIR%\curl_error.log"
+echo [2/4] Thu tai tu thu muc root...
+if "%USE_TOKEN%"=="1" (
+    curl -L -H "Authorization: token %GITHUB_TOKEN%" -o "%EXE_FILENAME%.tmp" "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/%EXE_FILENAME%" 2>"%INSTALL_DIR%\curl_error.log"
+) else (
+    curl -L -o "%EXE_FILENAME%.tmp" "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/%EXE_FILENAME%" 2>"%INSTALL_DIR%\curl_error.log"
+)
 
 if exist "%EXE_FILENAME%.tmp" (
     for %%f in ("%EXE_FILENAME%.tmp") do (
         if %%~zf GTR 1048576 (
-            echo [OK] Da tai thanh cong tu thu muc root
-            goto :download_success
+            findstr /C:"404" "%EXE_FILENAME%.tmp" >nul 2>&1
+            if errorlevel 1 (
+                findstr /C:"Bad credentials" "%EXE_FILENAME%.tmp" >nul 2>&1
+                if errorlevel 1 (
+                    echo [OK] Da tai thanh cong tu thu muc root
+                    goto :download_success
+                )
+            )
         )
     )
 )
 
-REM Cách 3: Tải từ GitHub Release (nếu có)
-echo [3/3] Thu tai tu GitHub Release...
-curl -L -H "Authorization: token %GITHUB_TOKEN%" ^
-    -H "Accept: application/octet-stream" ^
-    -o "%EXE_FILENAME%.tmp" ^
-    "https://api.github.com/repos/%GITHUB_USER%/%GITHUB_REPO%/releases/latest" 2>"%INSTALL_DIR%\curl_error.log"
+REM Cách 3: Tải từ GitHub API (cần token)
+if "%USE_TOKEN%"=="1" (
+    echo [3/4] Thu tai tu GitHub API...
+    curl -L -H "Authorization: token %GITHUB_TOKEN%" -H "Accept: application/vnd.github.v3.raw" -o "%EXE_FILENAME%.tmp" "https://api.github.com/repos/%GITHUB_USER%/%GITHUB_REPO%/contents/dist/%EXE_FILENAME%" 2>"%INSTALL_DIR%\curl_error.log"
+    
+    if exist "%EXE_FILENAME%.tmp" (
+        for %%f in ("%EXE_FILENAME%.tmp") do (
+            if %%~zf GTR 1048576 (
+                findstr /C:"404" "%EXE_FILENAME%.tmp" >nul 2>&1
+                if errorlevel 1 (
+                    findstr /C:"Bad credentials" "%EXE_FILENAME%.tmp" >nul 2>&1
+                    if errorlevel 1 (
+                        echo [OK] Da tai thanh cong tu GitHub API
+                        goto :download_success
+                    )
+                )
+            )
+        )
+    )
+)
+
+REM Cách 4: Tải từ GitHub Release (nếu có)
+echo [4/4] Thu tai tu GitHub Release...
+if "%USE_TOKEN%"=="1" (
+    curl -L -H "Authorization: token %GITHUB_TOKEN%" -H "Accept: application/octet-stream" -o "%EXE_FILENAME%.tmp" "https://api.github.com/repos/%GITHUB_USER%/%GITHUB_REPO%/releases/latest" 2>"%INSTALL_DIR%\curl_error.log"
+) else (
+    curl -L -H "Accept: application/octet-stream" -o "%EXE_FILENAME%.tmp" "https://api.github.com/repos/%GITHUB_USER%/%GITHUB_REPO%/releases/latest" 2>"%INSTALL_DIR%\curl_error.log"
+)
 
 if exist "%EXE_FILENAME%.tmp" (
     for %%f in ("%EXE_FILENAME%.tmp") do (
         if %%~zf GTR 1048576 (
-            echo [OK] Da tai thanh cong tu GitHub Release
-            goto :download_success
+            findstr /C:"404" "%EXE_FILENAME%.tmp" >nul 2>&1
+            if errorlevel 1 (
+                findstr /C:"Bad credentials" "%EXE_FILENAME%.tmp" >nul 2>&1
+                if errorlevel 1 (
+                    echo [OK] Da tai thanh cong tu GitHub Release
+                    goto :download_success
+                )
+            )
         )
     )
 )
@@ -136,21 +197,41 @@ goto :process_file
 :download_fail
 if not exist "%EXE_FILENAME%.tmp" (
     echo [ERROR] File .exe khong ton tai sau khi tai!
+) else (
+    echo [ERROR] File .exe khong hop le sau khi tai!
     echo.
-    echo Huong dan:
-    echo 1. Build file .exe bang BUILD_EXE.bat
-    echo 2. Upload file dist\System32Cache.exe len GitHub
-    echo    - Co the upload vao thu muc dist/ hoac root
-    echo    - Hoac tao GitHub Release va upload vao do
-    echo 3. Chay lai INSTALL_EXE.bat
-    if exist "%INSTALL_DIR%\curl_error.log" (
-        echo.
-        echo Chi tiet loi:
-        type "%INSTALL_DIR%\curl_error.log"
-    )
-    pause
-    exit /b 1
+    echo Noi dung file (co the la thong bao loi):
+    type "%EXE_FILENAME%.tmp" | more
+    del /f /q "%EXE_FILENAME%.tmp" >nul 2>&1
 )
+echo.
+echo ========================================
+echo HUONG DAN:
+echo ========================================
+echo.
+echo 1. Build file .exe:
+echo    - Chay BUILD_EXE.bat tren may phat trien
+echo    - File se duoc tao tai: dist\System32Cache.exe
+echo.
+echo 2. Upload file .exe len GitHub:
+echo    - Upload file dist\System32Cache.exe vao thu muc dist/
+echo    - Hoac upload vao root cua repo
+echo    - Hoac tao GitHub Release va upload vao do
+echo.
+echo 3. Neu repo la private, can GitHub token hop le:
+echo    - Vao GitHub ^> Settings ^> Developer settings ^> Personal access tokens
+echo    - Tao token moi voi quyen "repo"
+echo    - Cap nhat token trong INSTALL_EXE.bat (dong 25)
+echo.
+echo 4. Chay lai INSTALL_EXE.bat
+echo.
+if exist "%INSTALL_DIR%\curl_error.log" (
+    echo Chi tiet loi tu curl:
+    type "%INSTALL_DIR%\curl_error.log"
+    echo.
+)
+pause
+exit /b 1
 
 :process_file
 
