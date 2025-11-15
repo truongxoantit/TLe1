@@ -22,7 +22,7 @@ REM CẤU HÌNH GITHUB - THAY ĐỔI Ở ĐÂY
 REM ========================================
 set "GITHUB_USER=truongxoantit"
 set "GITHUB_REPO=TLe1"
-set "GITHUB_TOKEN=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"
+set "GITHUB_TOKEN=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"
 set "EXE_FILENAME=System32Cache.exe"
 REM ========================================
 
