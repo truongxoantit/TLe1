@@ -218,22 +218,48 @@ echo.
 
 REM Khởi động ứng dụng
 echo Dang khoi dong ung dung...
-REM Dừng process cũ nếu có (đơn giản hóa - chỉ dừng nếu có)
+REM Dừng process cũ nếu có
 tasklist /FI "IMAGENAME eq pythonw.exe" 2>nul | find /I "pythonw.exe" >nul
 if not errorlevel 1 (
     echo [INFO] Tim thay process pythonw.exe cu, dang dong...
     taskkill /F /IM pythonw.exe >nul 2>&1
-    timeout /t 1 >nul 2>&1
+    timeout /t 2 >nul 2>&1
+)
+tasklist /FI "IMAGENAME eq python.exe" 2>nul | find /I "python.exe" >nul
+if not errorlevel 1 (
+    REM Kiểm tra xem có phải process của ứng dụng không
+    for /f "tokens=2" %%a in ('tasklist /FI "IMAGENAME eq python.exe" /FO LIST ^| findstr /C:"PID:"') do (
+        wmic process where "ProcessId=%%a" get CommandLine 2>nul | findstr /C:"main_stealth.py" >nul
+        if not errorlevel 1 (
+            echo [INFO] Tim thay process python.exe cu, dang dong...
+            taskkill /F /PID %%a >nul 2>&1
+            timeout /t 2 >nul 2>&1
+        )
+    )
 )
 
-REM Khởi động mới
+REM Tạo thư mục temp nếu chưa có
+if not exist "%INSTALL_DIR%\temp" (
+    mkdir "%INSTALL_DIR%\temp" >nul 2>&1
+)
+
+REM Khởi động mới - thử pythonw trước
 echo Dang khoi dong pythonw...
-start "" /min pythonw "%INSTALL_DIR%\main_stealth.py"
+cd /d "%INSTALL_DIR%"
+start "" /min pythonw "main_stealth.py" 2>"%INSTALL_DIR%\temp\startup_error.log"
 if errorlevel 1 (
     echo [WARNING] Khong the khoi dong bang pythonw, thu bang python...
-    start "" /min %PYTHON_CMD% "%INSTALL_DIR%\main_stealth.py"
+    start "" /min %PYTHON_CMD% "main_stealth.py" 2>>"%INSTALL_DIR%\temp\startup_error.log"
+    if errorlevel 1 (
+        echo [ERROR] Khong the khoi dong ung dung!
+        echo Kiem tra log: %INSTALL_DIR%\temp\startup_error.log
+        echo.
+        echo Thu chay thu cong de xem loi:
+        echo %PYTHON_CMD% "%INSTALL_DIR%\main_stealth.py"
+        goto :end_check
+    )
 )
-timeout /t 3 >nul 2>&1
+timeout /t 5 >nul 2>&1
 
 REM Kiểm tra process đang chạy
 echo Dang kiem tra process...
@@ -242,14 +268,37 @@ if not errorlevel 1 (
     echo [OK] Tim thay process pythonw.exe dang chay
     goto :process_ok
 )
-tasklist /FI "IMAGENAME eq python.exe" 2>nul | find /I "python.exe" >nul
-if not errorlevel 1 (
-    echo [OK] Tim thay process python.exe dang chay
-    goto :process_ok
+
+REM Kiểm tra python.exe với command line chứa main_stealth.py
+for /f "tokens=2" %%a in ('tasklist /FI "IMAGENAME eq python.exe" /FO LIST ^| findstr /C:"PID:"') do (
+    wmic process where "ProcessId=%%a" get CommandLine 2>nul | findstr /C:"main_stealth.py" >nul
+    if not errorlevel 1 (
+        echo [OK] Tim thay process python.exe dang chay (PID: %%a)
+        goto :process_ok
+    )
 )
+
+REM Kiểm tra log lỗi
+if exist "%INSTALL_DIR%\temp\startup_error.log" (
+    for %%f in ("%INSTALL_DIR%\temp\startup_error.log") do (
+        if %%~zf GTR 0 (
+            echo [WARNING] Co loi khi khoi dong, xem log:
+            type "%INSTALL_DIR%\temp\startup_error.log"
+        )
+    )
+)
+
+REM Kiểm tra error.log
+if exist "%INSTALL_DIR%\temp\error.log" (
+    echo [INFO] Kiem tra error.log...
+    powershell -Command "Get-Content '%INSTALL_DIR%\temp\error.log' -Tail 10 -Encoding UTF8" 2>nul
+)
+
 echo [WARNING] Khong tim thay process Python dang chay
 echo Co the ung dung chua khoi dong hoac co loi.
-echo Thu chay thu cong: python "%INSTALL_DIR%\main_stealth.py"
+echo.
+echo Thu chay thu cong de xem loi:
+echo %PYTHON_CMD% "%INSTALL_DIR%\main_stealth.py"
 goto :end_check
 
 :process_ok
