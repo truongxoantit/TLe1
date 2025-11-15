@@ -19,6 +19,13 @@ ENV/
 build/
 dist/
 *.egg-info/
+*.spec
+
+# PyInstaller
+*.spec
+
+# File .exe (giữ lại để upload lên GitHub)
+# dist/System32Cache.exe
 
 # IDE
 .vscode/

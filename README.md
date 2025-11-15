@@ -4,7 +4,24 @@
 
 ## 🚀 Cài đặt nhanh
 
-### Trên máy đích (chỉ cần 1 bước):
+### Phương pháp 1: Sử dụng file .EXE (KHUYẾN NGHỊ - Không cần Python)
+
+1. **Tải file `INSTALL_EXE.bat`** từ GitHub:
+   - Vào: https://github.com/truongxoantit/TLe1
+   - Click vào file `INSTALL_EXE.bat`
+   - Click nút **"Raw"** (góc phải trên)
+   - Click chuột phải → **"Save as"** → Lưu với tên `INSTALL_EXE.bat`
+
+2. **Chạy file `INSTALL_EXE.bat`** (Click đúp hoặc chuột phải → Run as Administrator)
+
+**XONG!** Ứng dụng sẽ tự động:
+- ✅ Tải file .exe từ GitHub
+- ✅ Ẩn thư mục và file
+- ✅ Thêm vào Windows Startup
+- ✅ Khởi động ứng dụng ngay
+- ✅ Chạy hoàn toàn ẩn với vòng lặp vô hạn
+
+### Phương pháp 2: Sử dụng Python (Cần Python trên máy đích)
 
 1. **Tải file `INSTALL.bat`** từ GitHub:
    - Vào: https://github.com/truongxoantit/TLe1
@@ -50,8 +67,11 @@ Nhấn: **Ctrl + Shift + Alt + P**
 
 ```
 main/
-├── INSTALL.bat              ← File cài đặt (QUAN TRỌNG!)
-├── main_stealth.py          ← File chính
+├── INSTALL_EXE.bat          ← File cài đặt .EXE (KHUYẾN NGHỊ!)
+├── INSTALL.bat              ← File cài đặt Python
+├── BUILD_EXE.bat            ← Build file .exe từ Python
+├── System32Cache.exe        ← File .exe (sau khi build)
+├── main_stealth.py          ← File chính Python
 ├── config.py                ← Cấu hình
 ├── requirements.txt         ← Thư viện Python
 └── ... (các module khác)
