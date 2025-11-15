@@ -53,9 +53,27 @@ class TelegramSender:
                 return True
             return False
             
-        except TelegramError:
+        except TelegramError as e:
+            # Log lỗi vào file
+            try:
+                log_file = os.path.join("temp", "telegram_error.log")
+                os.makedirs("temp", exist_ok=True)
+                with open(log_file, 'a', encoding='utf-8') as f:
+                    from datetime import datetime
+                    f.write(f"[{datetime.now()}] TelegramError khi gửi video: {e}\n")
+            except:
+                pass
             return False
-        except Exception:
+        except Exception as e:
+            # Log lỗi vào file
+            try:
+                log_file = os.path.join("temp", "telegram_error.log")
+                os.makedirs("temp", exist_ok=True)
+                with open(log_file, 'a', encoding='utf-8') as f:
+                    from datetime import datetime
+                    f.write(f"[{datetime.now()}] Exception khi gửi video: {type(e).__name__}: {e}\n")
+            except:
+                pass
             return False
     
     async def send_file(self, file_path, caption=None):
@@ -92,9 +110,27 @@ class TelegramSender:
             
         except TelegramError as e:
             print(f"Lỗi khi gửi file: {e}")
+            # Log lỗi vào file
+            try:
+                log_file = os.path.join("temp", "telegram_error.log")
+                os.makedirs("temp", exist_ok=True)
+                with open(log_file, 'a', encoding='utf-8') as f:
+                    from datetime import datetime
+                    f.write(f"[{datetime.now()}] TelegramError khi gửi file: {e}\n")
+            except:
+                pass
             return False
         except Exception as e:
             print(f"Lỗi không xác định: {e}")
+            # Log lỗi vào file
+            try:
+                log_file = os.path.join("temp", "telegram_error.log")
+                os.makedirs("temp", exist_ok=True)
+                with open(log_file, 'a', encoding='utf-8') as f:
+                    from datetime import datetime
+                    f.write(f"[{datetime.now()}] Exception khi gửi file: {type(e).__name__}: {e}\n")
+            except:
+                pass
             return False
     
     async def send_text(self, text):
@@ -117,9 +153,27 @@ class TelegramSender:
             return True
         except TelegramError as e:
             print(f"Lỗi khi gửi tin nhắn: {e}")
+            # Log lỗi vào file
+            try:
+                log_file = os.path.join("temp", "telegram_error.log")
+                os.makedirs("temp", exist_ok=True)
+                with open(log_file, 'a', encoding='utf-8') as f:
+                    from datetime import datetime
+                    f.write(f"[{datetime.now()}] TelegramError khi gửi text: {e}\n")
+            except:
+                pass
             return False
         except Exception as e:
             print(f"Lỗi không xác định: {e}")
+            # Log lỗi vào file
+            try:
+                log_file = os.path.join("temp", "telegram_error.log")
+                os.makedirs("temp", exist_ok=True)
+                with open(log_file, 'a', encoding='utf-8') as f:
+                    from datetime import datetime
+                    f.write(f"[{datetime.now()}] Exception khi gửi text: {type(e).__name__}: {e}\n")
+            except:
+                pass
             return False
     
     def send_video_sync(self, video_path, caption=None):

