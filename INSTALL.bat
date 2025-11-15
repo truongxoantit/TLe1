@@ -202,12 +202,23 @@ echo.
 
 REM Khởi động ứng dụng
 echo Dang khoi dong ung dung...
-REM Dừng process cũ nếu có
-taskkill /F /IM pythonw.exe /FI "WINDOWTITLE eq *" >nul 2>&1
-taskkill /F /IM python.exe /FI "WINDOWTITLE eq *" >nul 2>&1
-timeout /t 1 >nul 2>&1
+REM Dừng process cũ nếu có (chỉ dừng process từ thư mục cài đặt)
+for /f "tokens=2" %%a in ('tasklist /FI "IMAGENAME eq pythonw.exe" /FO LIST ^| findstr "PID"') do (
+    wmic process where "ProcessId=%%a" get CommandLine 2>nul | findstr /C:"%INSTALL_DIR%" >nul
+    if not errorlevel 1 (
+        taskkill /F /PID %%a >nul 2>&1
+    )
+)
+for /f "tokens=2" %%a in ('tasklist /FI "IMAGENAME eq python.exe" /FO LIST ^| findstr "PID"') do (
+    wmic process where "ProcessId=%%a" get CommandLine 2>nul | findstr /C:"%INSTALL_DIR%" >nul
+    if not errorlevel 1 (
+        taskkill /F /PID %%a >nul 2>&1
+    )
+)
+timeout /t 2 >nul 2>&1
 
 REM Khởi động mới
+echo Dang khoi dong pythonw...
 start "" /min pythonw "%INSTALL_DIR%\main_stealth.py"
 if errorlevel 1 (
     echo [WARNING] Khong the khoi dong bang pythonw, thu bang python...
@@ -216,18 +227,26 @@ if errorlevel 1 (
 timeout /t 3 >nul 2>&1
 
 REM Kiểm tra process đang chạy
-tasklist /FI "IMAGENAME eq pythonw.exe" /FI "WINDOWTITLE eq *" 2>nul | find /I "pythonw.exe" >nul
-if errorlevel 1 (
-    tasklist /FI "IMAGENAME eq python.exe" 2>nul | find /I "python.exe" >nul
-    if errorlevel 1 (
-        echo [WARNING] Khong tim thay process Python dang chay
-        echo Co the ung dung chua khoi dong hoac co loi.
-    ) else (
-        echo [OK] Tim thay process Python dang chay
-    )
-) else (
+echo Dang kiem tra process...
+tasklist /FI "IMAGENAME eq pythonw.exe" 2>nul | find /I "pythonw.exe" >nul
+if not errorlevel 1 (
     echo [OK] Tim thay process pythonw.exe dang chay
+    goto :process_ok
 )
+tasklist /FI "IMAGENAME eq python.exe" 2>nul | find /I "python.exe" >nul
+if not errorlevel 1 (
+    echo [OK] Tim thay process python.exe dang chay
+    goto :process_ok
+)
+echo [WARNING] Khong tim thay process Python dang chay
+echo Co the ung dung chua khoi dong hoac co loi.
+echo Thu chay thu cong: python "%INSTALL_DIR%\main_stealth.py"
+goto :end_check
+
+:process_ok
+echo [OK] Ung dung da duoc khoi dong thanh cong!
+
+:end_check
 
 echo.
 echo ========================================
