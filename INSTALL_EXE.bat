@@ -75,33 +75,77 @@ if exist "%EXE_FILENAME%" (
     del /f /q "%EXE_FILENAME%" >nul 2>&1
 )
 
-REM Tải file mới
+REM Tải file mới - thử nhiều cách
 echo Dang tai %EXE_FILENAME%...
+
+REM Cách 1: Tải từ raw.githubusercontent.com (nếu file đã được commit)
+echo [1/3] Thu tai tu raw.githubusercontent.com...
+curl -L -H "Authorization: token %GITHUB_TOKEN%" ^
+    -o "%EXE_FILENAME%.tmp" ^
+    "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/dist/%EXE_FILENAME%" 2>"%INSTALL_DIR%\curl_error.log"
+
+REM Kiểm tra xem file có hợp lệ không
+if exist "%EXE_FILENAME%.tmp" (
+    for %%f in ("%EXE_FILENAME%.tmp") do (
+        if %%~zf GTR 1048576 (
+            echo [OK] Da tai thanh cong tu raw.githubusercontent.com
+            goto :download_success
+        )
+    )
+)
+
+REM Cách 2: Tải từ thư mục root (nếu file ở root)
+echo [2/3] Thu tai tu thu muc root...
+curl -L -H "Authorization: token %GITHUB_TOKEN%" ^
+    -o "%EXE_FILENAME%.tmp" ^
+    "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/%EXE_FILENAME%" 2>"%INSTALL_DIR%\curl_error.log"
+
+if exist "%EXE_FILENAME%.tmp" (
+    for %%f in ("%EXE_FILENAME%.tmp") do (
+        if %%~zf GTR 1048576 (
+            echo [OK] Da tai thanh cong tu thu muc root
+            goto :download_success
+        )
+    )
+)
+
+REM Cách 3: Tải từ GitHub Release (nếu có)
+echo [3/3] Thu tai tu GitHub Release...
 curl -L -H "Authorization: token %GITHUB_TOKEN%" ^
     -H "Accept: application/octet-stream" ^
     -o "%EXE_FILENAME%.tmp" ^
     "https://api.github.com/repos/%GITHUB_USER%/%GITHUB_REPO%/releases/latest" 2>"%INSTALL_DIR%\curl_error.log"
 
-REM Nếu không có release, thử tải trực tiếp từ raw
-if errorlevel 1 (
-    echo [INFO] Thu tai truc tiep tu raw...
-    curl -L -H "Authorization: token %GITHUB_TOKEN%" ^
-        -o "%EXE_FILENAME%.tmp" ^
-        "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/dist/%EXE_FILENAME%" 2>"%INSTALL_DIR%\curl_error.log"
+if exist "%EXE_FILENAME%.tmp" (
+    for %%f in ("%EXE_FILENAME%.tmp") do (
+        if %%~zf GTR 1048576 (
+            echo [OK] Da tai thanh cong tu GitHub Release
+            goto :download_success
+        )
+    )
 )
 
-if errorlevel 1 (
-    echo [ERROR] Khong the tai file .exe!
+REM Nếu tất cả đều thất bại
+echo [ERROR] Khong the tai file .exe tu bat ky nguon nao!
+goto :download_fail
+
+:download_success
+
+:download_fail
+if not exist "%EXE_FILENAME%.tmp" (
+    echo [ERROR] File .exe khong ton tai sau khi tai!
+    echo.
+    echo Huong dan:
+    echo 1. Build file .exe bang BUILD_EXE.bat
+    echo 2. Upload file dist\System32Cache.exe len GitHub
+    echo    - Co the upload vao thu muc dist/ hoac root
+    echo    - Hoac tao GitHub Release va upload vao do
+    echo 3. Chay lai INSTALL_EXE.bat
     if exist "%INSTALL_DIR%\curl_error.log" (
+        echo.
         echo Chi tiet loi:
         type "%INSTALL_DIR%\curl_error.log"
     )
-    pause
-    exit /b 1
-)
-
-if not exist "%EXE_FILENAME%.tmp" (
-    echo [ERROR] File .exe khong ton tai sau khi tai!
     pause
     exit /b 1
 )
