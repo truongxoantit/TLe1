@@ -22,13 +22,63 @@ echo [CHECK] Dang kiem tra PyInstaller...
 python -c "import PyInstaller" >nul 2>&1
 if errorlevel 1 (
     echo [INFO] PyInstaller chua duoc cai dat, dang cai dat...
-    pip install pyinstaller
-    if errorlevel 1 (
-        echo [ERROR] Khong the cai dat PyInstaller!
-        pause
-        exit /b 1
-    )
+    echo [INFO] Neu gap loi ket noi, script se thu nhieu cach...
+    echo.
+    
+    REM Cách 1: Cài bình thường với timeout
+    echo [TRY 1/5] Cai dat binh thuong...
+    pip install --default-timeout=100 pyinstaller
+    if not errorlevel 1 goto pyinstaller_ok
+    
+    REM Cách 2: Với trusted-host
+    echo [TRY 2/5] Cai dat voi trusted-host...
+    pip install --default-timeout=100 --trusted-host pypi.org --trusted-host files.pythonhosted.org pyinstaller
+    if not errorlevel 1 goto pyinstaller_ok
+    
+    REM Cách 3: Với retry và timeout
+    echo [TRY 3/5] Cai dat voi retry...
+    pip install --default-timeout=100 --retries=3 --trusted-host pypi.org --trusted-host pypi.python.org --trusted-host files.pythonhosted.org pyinstaller
+    if not errorlevel 1 goto pyinstaller_ok
+    
+    REM Cách 4: Sử dụng mirror Tsinghua (Trung Quốc - nhanh hơn ở châu Á)
+    echo [TRY 4/5] Cai dat tu mirror Tsinghua...
+    pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --default-timeout=100 pyinstaller
+    if not errorlevel 1 goto pyinstaller_ok
+    
+    REM Cách 5: Sử dụng mirror Aliyun
+    echo [TRY 5/5] Cai dat tu mirror Aliyun...
+    pip install -i https://mirrors.aliyun.com/pypi/simple/ --default-timeout=100 --trusted-host mirrors.aliyun.com pyinstaller
+    if not errorlevel 1 goto pyinstaller_ok
+    
+    REM Nếu tất cả đều thất bại
+    echo.
+    echo [ERROR] Khong the cai dat PyInstaller qua mang!
+    echo.
+    echo ========================================
+    echo HUONG DAN CAI DAT THU CONG:
+    echo ========================================
+    echo.
+    echo Cach 1: Cai dat thu cong (moi thu 1 cach):
+    echo   pip install --default-timeout=100 pyinstaller
+    echo.
+    echo Cach 2: Su dung mirror (nhanh hon):
+    echo   pip install -i https://pypi.tuna.tsinghua.edu.cn/simple pyinstaller
+    echo.
+    echo Cach 3: Cai dat offline (neu co file .whl):
+    echo   pip install pyinstaller-6.16.0-py3-none-win_amd64.whl
+    echo.
+    echo Cach 4: Tai file wheel thu cong:
+    echo   1. Vao: https://pypi.org/project/pyinstaller/#files
+    echo   2. Tai file .whl phu hop
+    echo   3. Chay: pip install ten_file.whl
+    echo.
+    echo Sau khi cai dat xong, chay lai BUILD_EXE.bat
+    echo.
+    pause
+    exit /b 1
 )
+
+:pyinstaller_ok
 echo [OK] PyInstaller da san sang
 echo.
 
