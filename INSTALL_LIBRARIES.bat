@@ -35,7 +35,10 @@ echo [2/8] Dang cai dat opencv-python...
 echo.
 
 echo [3/8] Dang cai dat numpy...
-%PYTHON_PATH% -m pip install numpy --upgrade
+%PYTHON_PATH% -m pip install numpy --upgrade --no-cache-dir 2>nul
+if errorlevel 1 (
+    echo [INFO] NumPy da co san, bo qua upgrade
+)
 echo.
 
 echo [4/8] Dang cai dat pynput...
@@ -70,8 +73,19 @@ if errorlevel 1 (
 )
 echo.
 
-echo [8/8] Dang cai dat pystray...
-%PYTHON_PATH% -m pip install pystray --upgrade
+echo [8/8] Dang cai dat pystray (khong bat buoc)...
+%PYTHON_PATH% -m pip install pystray --upgrade --no-cache-dir 2>nul
+if errorlevel 1 (
+    echo [RETRY] Thu cai dat tu mirror Tsinghua...
+    %PYTHON_PATH% -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple pystray --no-cache-dir 2>nul
+)
+if errorlevel 1 (
+    echo [RETRY] Thu cai dat tu mirror Aliyun...
+    %PYTHON_PATH% -m pip install -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com pystray --no-cache-dir 2>nul
+)
+if errorlevel 1 (
+    echo [WARNING] Khong the cai dat pystray (khong bat buoc)
+)
 echo.
 
 REM Kiểm tra
