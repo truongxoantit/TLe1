@@ -1,4 +1,5 @@
 @echo off
+setlocal enabledelayedexpansion
 REM ========================================
 REM INSTALLER TỰ ĐỘNG - FILE .EXE
 REM ========================================
@@ -80,18 +81,17 @@ echo Dang tai %EXE_FILENAME%...
 
 REM Kiểm tra token trước
 echo [CHECK] Dang kiem tra GitHub token...
+set USE_TOKEN=1
 curl -s -H "Authorization: token %GITHUB_TOKEN%" https://api.github.com/user >"%INSTALL_DIR%\token_check.tmp" 2>nul
 findstr /C:"Bad credentials" "%INSTALL_DIR%\token_check.tmp" >nul 2>&1
 if not errorlevel 1 (
     echo [WARNING] GitHub token khong hop le hoac het han!
     echo [INFO] Thu tai khong can token (neu repo la public)...
-    del /f /q "%INSTALL_DIR%\token_check.tmp" >nul 2>&1
     set USE_TOKEN=0
 ) else (
     echo [OK] GitHub token hop le
-    del /f /q "%INSTALL_DIR%\token_check.tmp" >nul 2>&1
-    set USE_TOKEN=1
 )
+del /f /q "%INSTALL_DIR%\token_check.tmp" >nul 2>&1
 echo.
 
 REM Cách 1: Tải từ raw.githubusercontent.com (không cần token nếu public)
