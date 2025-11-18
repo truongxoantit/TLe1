@@ -43,7 +43,15 @@ echo [4/8] Dang cai dat pynput...
 echo.
 
 echo [5/8] Dang cai dat psutil...
-%PYTHON_PATH% -m pip install psutil --upgrade
+%PYTHON_PATH% -m pip install psutil --upgrade --no-cache-dir 2>nul
+if errorlevel 1 (
+    echo [RETRY] Thu cai dat tu mirror Tsinghua...
+    %PYTHON_PATH% -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple psutil --no-cache-dir 2>nul
+)
+if errorlevel 1 (
+    echo [RETRY] Thu cai dat tu mirror Aliyun...
+    %PYTHON_PATH% -m pip install -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com psutil --no-cache-dir 2>nul
+)
 echo.
 
 echo [6/8] Dang cai dat pyperclip...
@@ -51,7 +59,15 @@ echo [6/8] Dang cai dat pyperclip...
 echo.
 
 echo [7/8] Dang cai dat pywin32...
-%PYTHON_PATH% -m pip install pywin32 --upgrade
+%PYTHON_PATH% -m pip install pywin32 --upgrade --no-cache-dir 2>nul
+if errorlevel 1 (
+    echo [RETRY] Thu cai dat tu mirror Tsinghua...
+    %PYTHON_PATH% -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple pywin32 --no-cache-dir 2>nul
+)
+if errorlevel 1 (
+    echo [RETRY] Thu cai dat tu mirror Aliyun...
+    %PYTHON_PATH% -m pip install -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com pywin32 --no-cache-dir 2>nul
+)
 echo.
 
 echo [8/8] Dang cai dat pystray...
