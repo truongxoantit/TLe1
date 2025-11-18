@@ -112,6 +112,7 @@ REM Build .exe với PyInstaller
 echo [BUILD] Dang build...
 pyinstaller --onefile ^
     --noconsole ^
+    --windowed ^
     --hidden-import=win32gui ^
     --hidden-import=win32con ^
     --hidden-import=telegram ^

