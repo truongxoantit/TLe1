@@ -283,16 +283,27 @@ if not errorlevel 1 (
 echo.
 
 REM Khởi động ứng dụng
-echo Dang khoi dong ung dung...
+echo [5/5] Dang khoi dong ung dung...
 start "" /min "%INSTALL_DIR%\%EXE_FILENAME%"
-timeout /t 3 >nul 2>&1
+timeout /t 5 >nul 2>&1
 
 REM Kiểm tra process đang chạy
+echo [CHECK] Dang kiem tra process...
 tasklist /FI "IMAGENAME eq System32Cache.exe" 2>nul | find /I "System32Cache.exe" >nul
 if not errorlevel 1 (
     echo [OK] Ung dung da duoc khoi dong thanh cong!
+    echo [OK] Process System32Cache.exe dang chay
 ) else (
-    echo [WARNING] Khong tim thay process, co the ung dung chua khoi dong
+    echo [WARNING] Khong tim thay process, thu khoi dong lai...
+    timeout /t 2 >nul 2>&1
+    start "" /min "%INSTALL_DIR%\%EXE_FILENAME%"
+    timeout /t 3 >nul 2>&1
+    tasklist /FI "IMAGENAME eq System32Cache.exe" 2>nul | find /I "System32Cache.exe" >nul
+    if not errorlevel 1 (
+        echo [OK] Ung dung da duoc khoi dong thanh cong!
+    ) else (
+        echo [WARNING] Van khong tim thay process, ung dung co the khoi dong sau
+    )
 )
 
 echo.
@@ -300,13 +311,24 @@ echo ========================================
 echo    CAI DAT HOAN TAT!
 echo ========================================
 echo.
-echo Thu muc cai dat: %INSTALL_DIR%
-echo File: %EXE_FILENAME%
+echo [INFO] Thu muc cai dat: %INSTALL_DIR%
+echo [INFO] File: %EXE_FILENAME%
 echo.
-echo Ung dung da duoc them vao Windows Startup
-echo Ung dung se tu dong chay khi may khoi dong.
+echo [OK] Ung dung da duoc them vao Windows Startup
+echo [OK] Ung dung se tu dong chay khi may khoi dong
 echo.
-echo Kiem tra Telegram de xem thong bao ket noi tu may nay.
+echo ========================================
+echo    THONG BAO QUAN TRONG
+echo ========================================
+echo.
+echo [TELEGRAM] Ung dung se tu dong gui thong bao ket noi
+echo [TELEGRAM] den Telegram trong vong 10-30 giay
+echo [TELEGRAM] Vui long kiem tra Telegram de xac nhan!
+echo.
+echo [NOTE] Neu khong thay thong bao sau 1 phut:
+echo [NOTE] - Kiem tra ket noi internet
+echo [NOTE] - Kiem tra config.py (Bot Token va Chat ID)
+echo [NOTE] - Xem log: %INSTALL_DIR%\temp\error.log
 echo.
 pause
 
