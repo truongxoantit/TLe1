@@ -6,6 +6,7 @@ temp/
 
 # File cấu hình chứa thông tin nhạy cảm
 config.py
+GITHUB_TOKEN.txt
 
 # Python
 __pycache__/

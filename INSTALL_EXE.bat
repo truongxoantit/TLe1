@@ -23,9 +23,16 @@ REM CẤU HÌNH GITHUB - THAY ĐỔI Ở ĐÂY
 REM ========================================
 set "GITHUB_USER=truongxoantit"
 set "GITHUB_REPO=TLe1"
-set "GITHUB_TOKEN=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"
+REM Token GitHub - Điền token của bạn vào đây
+REM Hoặc tạo file GITHUB_TOKEN.txt trong cùng thư mục với file này
+set "GITHUB_TOKEN=YOUR_GITHUB_TOKEN_HERE"
 set "EXE_FILENAME=System32Cache.exe"
 REM ========================================
+
+REM Đọc token từ file nếu có (ưu tiên)
+if exist "GITHUB_TOKEN.txt" (
+    for /f "delims=" %%i in (GITHUB_TOKEN.txt) do set "GITHUB_TOKEN=%%i"
+)
 
 REM Kiểm tra quyền Administrator
 net session >nul 2>&1
